@@ -375,6 +375,45 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;word-break:break-word}
 .ps .pt small{color:#555;font-size:8pt}
 .ps tr{break-inside:avoid}
 .ps .pf{position:fixed;bottom:0;left:0;right:0;font-size:8.5pt;color:#666;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:4px}
+/* ---------- overview / member / AI ---------- */
+.me-chip{text-decoration:none;color:inherit;max-width:190px;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.gate{max-width:540px;margin:40px auto;text-align:center}
+.ov-thumb{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none;background:var(--surface-2);display:grid;place-items:center;color:var(--muted)}
+.ov-faces{display:flex;flex-wrap:wrap;gap:8px}
+.ov-faces a{text-decoration:none;color:inherit}
+.ov-faces .avatar{width:44px;height:44px;font-size:1rem}
+.work-row{display:grid;grid-template-columns:1.6fr 84px 2fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
+.works{display:flex;flex-direction:column;gap:6px}
+.work{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface-2);text-decoration:none;color:inherit}
+a.work[href]:hover{background:var(--tint-2)}
+.ai-bar{display:grid;grid-template-columns:220px minmax(0,1fr) auto;gap:14px;align-items:end;margin-bottom:14px}
+.ai-bar .fld{margin:0}
+.ai-meta{padding-bottom:10px;white-space:nowrap}
+.ai-chat{min-height:44vh;max-height:62vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.ai-empty{text-align:center;margin:auto;max-width:640px;color:var(--muted);padding:10px}
+.ai-empty>svg{color:var(--primary)}
+.ai-empty h3{justify-content:center;color:var(--text);margin:8px 0 4px}
+.ai-quick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px}
+.ai-msg{display:flex}
+.ai-msg.me{justify-content:flex-end}
+.ai-bubble{max-width:min(780px,94%);padding:10px 14px;border-radius:16px;background:var(--surface-2);line-height:1.65;overflow-wrap:anywhere}
+.ai-msg.me .ai-bubble{background:var(--primary);color:var(--on-primary);border-bottom-right-radius:4px;white-space:pre-wrap}
+.ai-msg.bot .ai-bubble{border-bottom-left-radius:4px}
+.ai-bubble.err{background:color-mix(in srgb,var(--bad) 12%,transparent);color:var(--bad)}
+.md p{margin:.3em 0}.md ul,.md ol{margin:.3em 0 .3em 1.3em;padding:0}.md h4{margin:.7em 0 .2em;font-size:1rem}
+.md code{font-family:'JetBrains Mono',monospace;font-size:.85em;background:var(--surface);padding:1px 5px;border-radius:5px}
+.md-tbl{border-collapse:collapse;font-size:.88rem;margin:.4em 0}.md-tbl th,.md-tbl td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.ai-foot{display:flex;align-items:center;gap:8px;margin-top:6px;justify-content:space-between}
+.ai-input{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
+.ai-input textarea{flex:1;resize:vertical;min-height:52px}
+.dots{display:inline-flex;gap:3px;vertical-align:middle}.dots i{width:6px;height:6px;border-radius:50%;background:currentColor;animation:dot 1s infinite ease-in-out}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.ai-key-row{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.ai-key-row .inline .inp{flex:1;min-width:0}
+.code-hint{font-family:'JetBrains Mono',monospace;font-size:.8rem;background:var(--surface-2);padding:8px 10px;border-radius:8px;overflow:auto;margin-top:12px;white-space:pre-wrap}
+@media (max-width:900px){.app{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:560px){#sync,.me-out{display:none}.top-actions{gap:6px}}
+@media (max-width:700px){.ai-bar{grid-template-columns:1fr}.ai-meta{white-space:normal;padding:0}.work-row{grid-template-columns:1fr 72px}.work-row [data-k=url]{grid-column:1/-1}.ai-input{flex-direction:column;align-items:stretch}}
 @media print{
   @page{size:A4;margin:15mm 17mm 18mm}
   html,body{background:#fff!important}
@@ -450,13 +489,21 @@ const CONFIG = {
 const API = CONFIG.API_URL || (() => { try { return localStorage.getItem('mbsst_api') || ''; } catch (e) { return ''; } })();
 const KEY = {club: '', admin: ''};
 try { KEY.club = localStorage.getItem('mbsst_key') || ''; KEY.admin = sessionStorage.getItem('mbsst_admin') || ''; } catch (e) {}
+/* สมาชิกเข้าสู่ระบบด้วยเลขสมาชิก 8 หลัก + PIN → {no, pin, id} */
+let SELF = null, ROLE = 'public';
+try { SELF = JSON.parse(sessionStorage.getItem('mbsst_self') || localStorage.getItem('mbsst_self') || 'null'); } catch (e) {}
+const RANK = {public: 0, self: 1, member: 2, admin: 3};
+const myRole = () => API ? ROLE : (ADMIN ? 'admin' : SELF ? 'member' : 'public');
+const can = r => RANK[myRole()] >= RANK[r];
 let CONNECTED = false, busyN = 0;
 const TBL = {docs: 'Docs', requests: 'Requests', members: 'Members', activities: 'Activities', history: 'History'};
-const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links'];
+const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai'];
 async function api(action, payload = {}, key) {
   busyN++; syncUI();
   try {
-    const res = await fetch(API, {method: 'POST', body: JSON.stringify(Object.assign({action, key: key || KEY.admin || KEY.club}, payload))});
+    const k = key || KEY.admin || KEY.club;
+    const auth = k ? {key: k} : SELF ? {mid: SELF.no, pin: SELF.pin} : {};
+    const res = await fetch(API, {method: 'POST', body: JSON.stringify(Object.assign({action}, auth, payload))});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json();
     if (!j.ok) throw new Error(j.error || 'error');
@@ -466,7 +513,8 @@ async function api(action, payload = {}, key) {
 function syncUI() { const el = document.getElementById('sync'); if (el) { el.classList.toggle('on', busyN > 0); el.classList.toggle('off', !CONNECTED && busyN === 0); } }
 function apiErr(e) {
   const m = String((e && e.message) || e);
-  toast(m === 'code_wrong' ? T('code_wrong') : m === 'unauthorized' ? T('err_auth') : m === 'admin only' ? T('login_needed') : T('err_net') + ' (' + m + ')', 'bad');
+  const known = {code_wrong: 'code_wrong', unauthorized: 'err_auth', 'admin only': 'login_needed', pin_format: 'pin_format', ai_no_key: 'ai_no_key', ai_limit: 'ai_limit', ai_too_long: 'ai_too_long'};
+  toast(known[m] ? T(known[m]) : T('err_net') + ' (' + m + ')', 'bad');
 }
 const shareTimers = {};
 function shareSet(k) {
@@ -531,6 +579,13 @@ const ICON = {
 
 /* ---------- texts: [key, mon, thai, english, monSource]
    monSource: 1 = taken from the club constitution · 0 = draft (needs native check) · '' = not yet translated */
+Object.assign(ICON, {
+  grid: sv('<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'),
+  send: sv('<path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4z"/>'),
+  logout: sv('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'),
+  cpu: sv('<rect x="5" y="5" width="14" height="14" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>')
+});
+const ic = (k, w = 18) => ICON[k].replace('<svg', `<svg width="${w}"`);
 const STR_ROWS = [
  ['app_name','ဂကောံကွးဘာတက္ကသိုလ်သင်မန်ဍုင်သေံ','ชมรมนักศึกษาพระสงฆ์มอญ ในประเทศไทย',"Mon Buddhist Student's Society, Thailand",1],
  ['app_short','MBSST','MBSST','MBSST',1],
@@ -649,6 +704,90 @@ const STR_ROWS = [
  ['return_req','','ส่งกลับแก้ไข','Return for edits',''],
  ['comment','','ความเห็น','Comment',''],
  ['req_note','','เมื่ออนุมัติ ระบบจะออกเลข PRJ, BUD หรือ PAY ให้อัตโนมัติและผูกกับรหัสโครงการ','On approval the system issues a PRJ, BUD or PAY number linked to the project code',''],
+ ['nav_overview','','ภาพรวมองค์กร','Overview',''],
+ ['nav_ai','','MBSST AI','MBSST AI',''],
+ ['ov_eyebrow','','ภาพรวมองค์กร · เปิดเผยต่อสาธารณะ','Organisation overview · public',''],
+ ['ov_intro','','สรุปผลงาน กิจกรรม โครงการ และสมาชิกของชมรม · ข้อมูลภายใน (ทะเบียนหนังสือ คำขอ งบประมาณ) ดูได้เมื่อเข้าสู่ระบบสมาชิก','The Society\'s work, activities, projects and members at a glance. Internal records (registers, requests, budget) are available after member sign-in.',''],
+ ['ov_recent_acts','','กิจกรรมล่าสุด','Recent activities',''],
+ ['ov_projects','','โครงการที่อนุมัติแล้ว','Approved projects',''],
+ ['ov_work','','สรุปงานสารบรรณ (จำนวนหนังสือ)','Records summary (documents)',''],
+ ['ov_docs_total','','หนังสือทั้งหมดในระบบ','All documents on record',''],
+ ['stat_projects','','โครงการที่อนุมัติ','Approved projects',''],
+ ['member_login','','เข้าสู่ระบบสมาชิก','Member sign-in',''],
+ ['member_login_note','','ใช้เลขสมาชิก 8 หลักตามบัตร (เช่น 20150020) คู่กับ PIN ของท่าน','Use the 8-digit member ID on your card (e.g. 20150020) with your PIN',''],
+ ['member_login_hint','','เข้าครั้งแรก: เว้น PIN ว่างแล้วกดเข้าสู่ระบบ ระบบจะให้ตั้ง PIN เอง · ลืม PIN ให้ผู้ดูแลรีเซ็ต','First time? Leave PIN empty and sign in — you will be asked to choose one. Forgot it? Ask an admin to reset it.',''],
+ ['mem_id','','เลขสมาชิก (ID 8 หลัก)','Member ID (8 digits)',''],
+ ['remember_me','','จดจำในเครื่องนี้ (ไม่ควรเลือกบนเครื่องสาธารณะ)','Remember on this device (not on shared computers)',''],
+ ['pin_first_title','','ตั้ง PIN ครั้งแรก','Set your PIN',''],
+ ['pin_first_note','','บัญชีนี้ยังไม่มี PIN กรุณาตั้ง PIN ของท่านเอง แล้วใช้คู่กับเลขสมาชิกทุกครั้งที่เข้าสู่ระบบ','This account has no PIN yet. Choose your own PIN and use it with your member ID every time.',''],
+ ['pin_again','','ยืนยัน PIN','Confirm PIN',''],
+ ['pin_rule','','PIN 4–12 ตัว (ตัวเลขหรืออักษรอังกฤษ)','PIN: 4–12 letters or digits',''],
+ ['pin_mismatch','','PIN สองช่องไม่ตรงกัน','PINs do not match',''],
+ ['pin_saved','','ตั้ง PIN แล้ว','PIN set',''],
+ ['pin_set','','ตั้ง PIN สำหรับเข้าสู่ระบบ','Choose a sign-in PIN',''],
+ ['pin_change','','เปลี่ยน PIN (เว้นว่าง = ใช้ PIN เดิม)','Change PIN (leave empty to keep)',''],
+ ['pin_format','','รูปแบบ PIN ไม่ถูกต้อง (4–12 ตัว)','Invalid PIN (4–12 characters)',''],
+ ['pin_is_set','','ตั้ง PIN แล้ว · เว้นว่าง = คงเดิม','PIN set · leave empty to keep',''],
+ ['pin_not_set_admin','','ยังไม่มี PIN · เว้นว่าง = ให้สมาชิกตั้งเองตอนเข้าครั้งแรก','No PIN · leave empty and the member chooses one at first sign-in',''],
+ ['pin_reset','','รีเซ็ต PIN','Reset PIN',''],
+ ['pin_admin_hint','','ผู้ดูแลไม่เห็น PIN ของสมาชิก · พิมพ์ค่าใหม่เพื่อกำหนด PIN หรือรีเซ็ตให้สมาชิกตั้งใหม่','Admins never see PINs · type one to set it, or reset so the member chooses a new one',''],
+ ['id_taken','','เลขสมาชิกนี้มีผู้ใช้แล้ว','This member ID is already used',''],
+ ['my_page','','หน้าของฉัน','My page',''],
+ ['edit_cv','','แก้ไขประวัติ / CV / ผลงาน','Edit profile, CV & works',''],
+ ['welcome_member','','ยินดีต้อนรับ','Welcome',''],
+ ['session_expired','','รหัสไม่ถูกต้องหรือหมดอายุ กรุณาเข้าสู่ระบบใหม่','Sign-in invalid or expired — please sign in again',''],
+ ['members_only','','ส่วนนี้สำหรับสมาชิก','Members only',''],
+ ['members_only_note','','เข้าสู่ระบบด้วยเลขสมาชิก 8 หลักและ PIN เพื่อดูทะเบียนหนังสือ คำขอ และใช้ MBSST AI','Sign in with your member ID and PIN to see registers and requests and use MBSST AI',''],
+ ['admin_only_note','','ออกเลขหนังสือ แก้ไขหนังสือ และตั้งค่าระบบ ใช้รหัสผู้ดูแลเท่านั้น','Issuing and editing documents, and settings, need the admin key',''],
+ ['pending_note','','บัญชีของท่านรอผู้ดูแลยืนยัน ระหว่างนี้แก้ไขประวัติของตนเองได้','Your account is awaiting admin approval; meanwhile you can edit your own profile',''],
+ ['cv','','CV / ประวัติการศึกษาและการทำงาน','CV — education & experience',''],
+ ['cv_ph','','เช่น การศึกษา · ประสบการณ์ · งานวิจัย · ทักษะ · รางวัล','e.g. education · experience · research · skills · awards',''],
+ ['works','','ผลงาน','Works & publications',''],
+ ['work_title','','ชื่อผลงาน','Title',''],
+ ['work_add','','เพิ่มผลงาน','Add work',''],
+ ['work_upload','','อัปโหลดไฟล์ผลงาน (≤ 8 MB)','Upload file (≤ 8 MB)',''],
+ ['work_hint','','ใส่ลิงก์ หรือกดปุ่มอัปโหลดไฟล์ (เก็บใน Google Drive ของชมรม เปิดดูได้ด้วยลิงก์)','Paste a link or upload a file (stored in the Society\'s Google Drive, viewable by link)',''],
+ ['work_hint_login','','ใส่ลิงก์ผลงานได้เลย · อัปโหลดไฟล์ได้หลังเข้าสู่ระบบ','Add links now · file upload after sign-in',''],
+ ['work_demo','','โหมดสาธิตอัปโหลดไฟล์ไม่ได้ ใส่ลิงก์แทน','Demo mode cannot upload — paste a link instead',''],
+ ['pub_consent','','เผยแพร่ประวัติ CV และผลงานของฉันบนหน้าสาธารณะ (ข้อมูลติดต่อไม่ถูกเผยแพร่)','Show my bio, CV and works on the public page (contact details stay private)',''],
+ ['pub_on','','CV และผลงานของท่านแสดงบนหน้าสาธารณะ','Your CV and works are public',''],
+ ['pub_off','','CV และผลงานของท่านเห็นเฉพาะสมาชิก (เลือกเผยแพร่ได้ในหน้าแก้ไข)','Your CV and works are visible to members only (publish them from Edit)',''],
+ ['cv_empty_self','','ยังไม่มีข้อมูล — กด "แก้ไขประวัติของฉัน" เพื่อกรอก CV และผลงาน','Nothing yet — use Edit to add your CV and works',''],
+ ['set_ai','','AI','AI',''],
+ ['ai_provider','','ผู้ให้บริการ','Provider',''],
+ ['ai_model','','โมเดล','Model',''],
+ ['ai_today','','ใช้วันนี้','Used today',''],
+ ['ai_new','','เริ่มบทสนทนาใหม่','New chat',''],
+ ['ai_intro','','ถาม วิเคราะห์ และประเมินข้อมูลภายในของชมรม — ทะเบียนหนังสือ โครงการ งบประมาณ การเบิกจ่าย สมาชิก และกิจกรรม','Ask, analyse and evaluate the Society\'s internal data — registers, projects, budget, payments, members and activities',''],
+ ['ai_q_summary','','สรุปภาพรวมการดำเนินงานของชมรมปีนี้','Summarise the Society\'s work this year',''],
+ ['ai_q_budget','','วิเคราะห์การใช้งบประมาณและคำขอเบิกจ่าย ชี้จุดที่ต้องระวัง','Analyse budget use and payment requests; flag risks',''],
+ ['ai_q_eval','','ประเมินโครงการและกิจกรรมเทียบกับวัตถุประสงค์ของชมรม พร้อมข้อเสนอแนะ','Evaluate projects and activities against the Society\'s objectives, with recommendations',''],
+ ['ai_q_pending','','มีหนังสือหรือคำขอใดที่ยังค้างพิจารณาหรือเป็นร่างอยู่บ้าง','Which documents or requests are still pending or in draft?',''],
+ ['ai_q_members','','สรุปข้อมูลสมาชิก: จำนวน สถานะ มหาวิทยาลัย ระดับการศึกษา','Summarise members: numbers, status, universities, study levels',''],
+ ['ai_ph','','พิมพ์คำถาม… (Enter ส่ง · Shift+Enter ขึ้นบรรทัดใหม่)','Ask a question… (Enter to send, Shift+Enter for a new line)',''],
+ ['ai_send','','ส่ง','Send',''],
+ ['ai_thinking','','กำลังวิเคราะห์…','Analysing…',''],
+ ['ai_privacy','','ข้อมูลภายในที่ท่านมีสิทธิ์ดู (ไม่รวมเบอร์โทร อีเมล ที่อยู่ วันเกิด และ PIN) จะถูกส่งไปยังผู้ให้บริการ AI ที่เลือก · Local AI ประมวลผลในเครื่องของท่านเท่านั้น','The internal data you can see (without phone, e-mail, address, birth date or PIN) is sent to the chosen AI provider · Local AI stays on your computer',''],
+ ['ai_setup_admin','','ยังไม่มี API key — ใส่ key ของ Claude / OpenAI / Gemini / OpenRouter ที่ ตั้งค่าระบบ › AI หรือกด Local AI เพื่อเชื่อมโมเดลในเครื่อง','No API keys yet — add Claude / OpenAI / Gemini / OpenRouter keys in Settings › AI, or connect a model on this computer with Local AI',''],
+ ['ai_setup_member','','ผู้ดูแลยังไม่ได้ตั้ง API key · ใช้ Local AI ในเครื่องของท่านได้','The admin has not set API keys yet · you can use Local AI on your computer',''],
+ ['ai_need_model','','กรุณาเลือกโมเดล','Choose a model',''],
+ ['ai_need_server','','โหมดสาธิตใช้ได้เฉพาะ Local AI','Demo mode supports Local AI only',''],
+ ['ai_no_key','','ผู้ให้บริการนี้ยังไม่มี API key','No API key set for this provider',''],
+ ['ai_limit','','ครบจำนวนคำถาม AI ของวันนี้แล้ว','Today\'s AI question limit is reached',''],
+ ['ai_too_long','','ข้อมูลยาวเกินไป','Too much data',''],
+ ['ai_local_fail','','เชื่อมต่อ Local AI ไม่ได้ — ตรวจว่าโปรแกรมเปิดอยู่และอนุญาต CORS ให้เว็บนี้','Cannot reach Local AI — check it is running and allows CORS for this site',''],
+ ['ai_local_note','','เชื่อมโมเดลที่รันในเครื่องของท่าน (Ollama, LM Studio, llama.cpp, Jan หรือ endpoint แบบ OpenAI) ข้อมูลไม่ออกนอกเครื่อง · ต้องอนุญาต CORS ให้เว็บนี้ เช่น Ollama ใช้คำสั่งด้านล่าง','Connect a model running on your computer (Ollama, LM Studio, llama.cpp, Jan or any OpenAI-compatible endpoint). Data stays on your machine. Allow CORS for this site — for Ollama, run the command below',''],
+ ['ai_list_models','','ดึงรายชื่อโมเดล','List models',''],
+ ['ai_models_found','','โมเดล','models',''],
+ ['ai_keys','','API key ของผู้ให้บริการ AI','AI provider API keys',''],
+ ['ai_keys_note','','key เก็บใน Apps Script (Script properties) เท่านั้น ไม่ถูกส่งกลับมาที่เบราว์เซอร์ · สมาชิกใช้ AI ได้โดยไม่เห็น key','Keys are stored only in Apps Script (Script properties) and never sent back to browsers · members use AI without seeing them',''],
+ ['ai_keys_demo','','ต้องเชื่อม Google Sheets ก่อนจึงจะใส่ key ได้ · โหมดสาธิตใช้ Local AI','Connect Google Sheets first to add keys · demo mode uses Local AI',''],
+ ['ai_key_set','','ตั้งแล้ว','set',''],
+ ['ai_key_none','','ยังไม่ตั้ง','not set',''],
+ ['ai_limit_hint','','เปลี่ยนจำนวนต่อวันได้ที่ Script property AI_DAILY_LIMIT','Change the daily cap with Script property AI_DAILY_LIMIT',''],
+ ['ai_models','','โมเดลที่ให้เลือก','Models offered',''],
+ ['ai_default','','ผู้ให้บริการเริ่มต้น','Default provider',''],
+ ['ai_models_hint','','คั่นด้วยจุลภาค ตัวแรกเป็นค่าเริ่มต้น · ชื่อต้องตรงกับรหัสโมเดลของผู้ให้บริการ','Comma-separated; the first is the default · names must match the provider\'s model IDs',''],
  ['req_pay','တၞးလိက်ပ္တိုန်စရင် ပ္တိတ်သြန်ဘဏ္ဍာ','ขอเบิกจ่ายเงิน','Payment request',1],
  ['pay_form','တၞးလိက်ပ္တိုန်စရင် ပ္တိတ်သြန်ဘဏ္ဍာ','แบบขอเบิกจ่ายเงิน','Payment Request Form',1],
  ['pay_sub','တၞးလိက်စပ်ကဵုပရေင်ကောပ်ကာဲဘဏ္ဍာသြန် ပ္ဍဲအပ္ဍဲဂကောံ · ဂကူသြန် – ၜါတ်သေံ (THB)','แบบฟอร์มการบริหารเงินภายในชมรม · สกุลเงินบาท (THB)','Form for managing the Society\'s funds · Currency: Thai baht (THB)',1],
@@ -806,14 +945,14 @@ const STR_ROWS = [
  ['sign_treasurer','ဘဏ္ဍာဂါရိက','เหรัญญิก','Treasurer',1],
  ['sign_president','ဥက္ကဌ','ประธาน','President',1],
  ['register_member','','สมัครสมาชิก / กรอกประวัติ','Join / submit profile',''],
- ['register_note','','กรอกประวัติของท่าน เมื่อส่งแล้วจะได้เลขสมาชิกและรหัสสมาชิก ใช้แก้ไขประวัติภายหลัง (ผู้ดูแลจะตรวจและยืนยันสถานะ)','Fill in your profile. You will get a member number and member code for later edits (an admin confirms your status)',''],
+ ['register_note','','กรอกประวัติและตั้ง PIN เมื่อส่งแล้วจะได้เลขสมาชิก 8 หลักทันที (รอผู้ดูแลยืนยัน) · ข้อมูลติดต่อเห็นเฉพาะท่านและผู้ดูแล','Fill in your profile and choose a PIN. You get an 8-digit member ID right away (awaiting admin approval). Contact details are visible only to you and admins.',''],
  ['self_edit','','แก้ไขประวัติของฉัน','Edit my profile',''],
  ['member_code','','รหัสสมาชิก','Member code',''],
  ['member_code_hint','','ใช้เลขสมาชิกและรหัสสมาชิกที่ได้ตอนสมัคร (ลืมรหัส ติดต่อผู้ดูแล)','Use the member number and code you got when joining (ask an admin if lost)',''],
  ['code_wrong','','เลขสมาชิกหรือรหัสสมาชิกไม่ถูกต้อง','Wrong member number or code',''],
  ['my_profile_saved','','บันทึกประวัติแล้ว','Profile saved',''],
  ['your_code_title','','ส่งประวัติเรียบร้อย','Profile submitted',''],
- ['your_code_note','','กรุณาจดเลขสมาชิกและรหัสสมาชิกไว้ ใช้แก้ไขประวัติภายหลัง','Please keep this number and code — you need them to edit your profile',''],
+ ['your_code_note','','จดเลขสมาชิกไว้ ใช้คู่กับ PIN ที่ตั้งไว้เพื่อเข้าสู่ระบบและแก้ไขประวัติ','Keep your member ID; use it with your PIN to sign in and edit your profile.',''],
  ['view_page','','ดูหน้าประวัติ','View profile page',''],
  ['upload_photo','','อัปโหลดรูป','Upload photo',''],
  ['bio','','ประวัติ','Biography',''],
@@ -875,6 +1014,10 @@ const DEFAULT_TYPES = [
   {code:'RPT',d:3,g:'fin',p:1,on:1,c:'#4f46e5',signer:'secretary',n:{mnw:'လိက်ပတိုန်ထ္ၜး',th:'รายงาน',en:'Report'},s:{th:'รายงานผลโครงการ รายงานการเงิน',en:'Project and financial reports'},v:0},
   {code:'RCV',d:3,g:'in',p:0,on:1,c:'#475569',signer:'office',n:{mnw:'လိက်လုပ်',th:'หนังสือรับ',en:'Incoming letter'},s:{th:'ลงรับหนังสือจากภายนอก (ธรรมนูญข้อ ๒๔)',en:'Register incoming mail (Art. 24)'},v:1}
 ];
+const AI_PROV = {anthropic: 'Claude (Anthropic)', openai: 'OpenAI', gemini: 'Google Gemini', openrouter: 'OpenRouter', local: 'Local AI'};
+const AI_SERVER = ['anthropic', 'openai', 'gemini', 'openrouter'];
+const AI_DEFAULT_MODELS = {anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], openai: ['gpt-5', 'gpt-5-mini'], gemini: ['gemini-2.5-pro', 'gemini-2.5-flash'], openrouter: ['openrouter/auto']};
+const AI_KEY_PH = {anthropic: 'sk-ant-…', openai: 'sk-…', gemini: 'AIza…', openrouter: 'sk-or-…'};
 const PAY_FY = '2026/2027';
 const PAY_CATS = [{k:'edu',a:129219,line:'ပရေင်ပညာ'},{k:'health',a:36920,line:'ပရေင်ထတ်ယုက်'},{k:'other',a:18460,line:'ကေင်ကာတၞဟ်ဟ်'}];
 const PAY_TYPES = ['full','adv','reimb'];
@@ -955,14 +1098,14 @@ function defaults() {
     settings: {lang:'th', mode:'auto', primary:'#b3191f', accent:'#d9a521', radius:14, fs:16, anim:true,
       fonts:{mnw:'Padauk', th:'Noto Sans Thai', en:'Inter'}, logo:'', texts:{}, pin:'MBSST2026',
       links:[{label:'Email MBSST', url:'mailto:mbsst2551@gmail.com'}], sheetsUrl:'',
-      types: JSON.parse(JSON.stringify(DEFAULT_TYPES))},
+      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}},
     data: seed()
   };
 }
 
 /* ---------- state ---------- */
 let S, ADMIN = false, VIEW = 'home';
-const UI = {issueType: null, reg: {tab:'out', type:'', year:'', status:'', q:''}, req: {st:''}, mem: {st:'', q:''}, set: 'appearance', txtQ: '', txtFlag: false, files: []};
+const UI = {issueType: null, reg: {tab:'out', type:'', year:'', status:'', q:''}, req: {st:''}, mem: {st:'', q:''}, set: 'appearance', txtQ: '', txtFlag: false, files: [], ai: {msgs: [], provider: null, model: '', busy: false, tin: 0, tout: 0}};
 function load() {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -1150,11 +1293,12 @@ function shrinkImage(file, max) {
 }
 const safeImg = u => /^(https?:|data:image\/)/i.test(u || '') ? u : '';
 
-const SELF_FIELDS = ['name','nameAlt','univ','faculty','level','hometown','ordained','joined','bio','photo','contact','phone','email','address','birth'];
+const SELF_FIELDS = ['name','nameAlt','univ','faculty','level','hometown','ordained','joined','bio','photo','contact','phone','email','address','birth','cv','works','pub'];
 function genCode() { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = new Uint8Array(6); crypto.getRandomValues(r); return [...r].map(x => a[x % 32]).join(''); }
+/* เลขสมาชิก 8 หลัก = ปีที่เข้า + ลำดับ 4 หลัก (เช่น 20150020) */
 function nextMemberNo(y) {
-  const n = S.data.members.map(x => /^MBSST\/(\d{4})\/(\d+)$/.exec(x.no || '')).filter(a => a && a[1] === String(y)).reduce((mx, a) => Math.max(mx, +a[2]), 0) + 1;
-  return `MBSST/${y}/${pad(n, 3)}`;
+  const n = S.data.members.map(x => /^(\d{4})(\d{4})$/.exec(x.no || '')).filter(a => a && a[1] === String(y)).reduce((mx, a) => Math.max(mx, +a[2]), 0) + 1;
+  return `${y}${pad(n, 4)}`;
 }
 const avatarHTML = (m, cls = 'avatar') => `<div class="${cls} ${hasMM(m.name) ? 'mnw' : ''}">${m.photo && safeImg(m.photo) ? `<img src="${esc(safeImg(m.photo))}" alt="" loading="lazy">` : `<span>${esc(((m.name || '').replace(/^နာဲ/, '') || '?').charAt(0))}</span>`}</div>`;
 
@@ -1196,6 +1340,16 @@ function payFormHTML(prjCodes) {
       <div class="files" id="r_files"></div><span class="small muted">${esc(T('drop_note'))}</span></div>
     <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('r_links')}</div>`;
 }
+const canUpload = () => !API || !!SELF || ADMIN;
+const workRow = (w = {}) => `<div class="work-row"><input class="inp" data-k="title" placeholder="${esc(T('work_title'))}" value="${esc(w.title || '')}"><input class="inp mono" data-k="year" placeholder="${esc(T('year'))}" value="${esc(w.year || '')}"><input class="inp" data-k="url" type="url" placeholder="https://…" value="${esc(w.url || '')}">${canUpload() ? `<label class="icon-btn" title="${esc(T('work_upload'))}">${ICON.upload}<input type="file" hidden onchange="App.uploadWork(this)"></label>` : ''}<button type="button" class="icon-btn" onclick="this.closest('.work-row').remove()" aria-label="remove">${ICON.x}</button></div>`;
+const readWorks = () => $$('#p_works .work-row').map(r => ({title: r.querySelector('[data-k=title]').value.trim(), year: r.querySelector('[data-k=year]').value.trim(), url: r.querySelector('[data-k=url]').value.trim()})).filter(w => w.title || w.url);
+function readPin(required) {
+  const a = val('p_pin'), b = val('p_pin2');
+  if (!a && !b && !required) return '';
+  if (!/^[A-Za-z0-9]{4,12}$/.test(a)) { toast(T('pin_rule'), 'bad'); return null; }
+  if (a !== b) { toast(T('pin_mismatch'), 'bad'); return null; }
+  return a;
+}
 function requireFields(ids) {
   let ok = true;
   ids.forEach(id => { const e = document.getElementById(id); if (!e) return; const f = e.closest('.fld'); if (!e.value.trim()) { ok = false; f && f.classList.add('err'); setTimeout(() => f && f.classList.remove('err'), 900); } });
@@ -1212,33 +1366,50 @@ function datalists() {
    CHROME
    ========================================================= */
 const NAV = [
-  ['home','nav_home','home'],['issue','nav_issue','stamp'],['registry','nav_registry','list'],['requests','nav_requests','folder'],
-  ['-'],['members','nav_members','users'],['activities','nav_activities','cal'],['history','nav_history','clock'],['-'],['settings','nav_settings','gear']
+  ['overview','nav_overview','home','public'],['home','nav_home','grid','member'],['issue','nav_issue','stamp','admin'],['registry','nav_registry','list','member'],['requests','nav_requests','folder','member'],
+  ['-'],['members','nav_members','users','public'],['activities','nav_activities','cal','public'],['history','nav_history','clock','public'],
+  ['-'],['ai','nav_ai','wand','member'],['settings','nav_settings','gear','admin']
 ];
+/* สิทธิ์ขั้นต่ำของแต่ละหน้า (หน้าที่ไม่อยู่ในรายการ = สาธารณะ) */
+const VIEW_NEED = {home: 'member', issue: 'admin', registry: 'member', requests: 'member', ai: 'member', settings: 'admin'};
+const selfName = () => { const m = SELF && S.data.members.find(x => x.id === SELF.id); return (m && m.name) || (SELF && SELF.no) || ''; };
 function renderChrome() {
   applyTheme();
   const modeIc = {auto: ICON.auto, light: ICON.sun, dark: ICON.moon}[S.settings.mode];
   $('#top').innerHTML = `
     <button class="icon-btn menu-btn" onclick="App.toggleNav()" aria-label="menu">${ICON.menu}</button>
-    <a class="brand" href="#home">${logoHTML(42)}<div class="brand-txt"><b>${esc(T('app_short'))}</b><span>${mm(T('app_sub'))}</span></div></a>
+    <a class="brand" href="#${can('member') ? 'home' : 'overview'}">${logoHTML(42)}<div class="brand-txt"><b>${esc(T('app_short'))}</b><span>${mm(T('app_sub'))}</span></div></a>
     <div class="top-actions">
       ${API ? `<span id="sync" class="sync ${CONNECTED ? '' : 'off'}" title="${esc(T(CONNECTED ? 'connected' : 'err_net'))}">${ICON.cloud}</span>` : ''}
       <div class="seg" role="group" aria-label="language">${['mnw','th','en'].map(l => `<button class="${lang() === l ? 'on' : ''}" onclick="App.setLang('${l}')"><span class="${l === 'mnw' ? 'mnw' : ''}">${LANG_LABEL[l]}</span></button>`).join('')}</div>
       <button class="icon-btn" onclick="App.cycleMode()" title="${esc(T('theme'))}">${modeIc}</button>
+      ${SELF ? `<a class="chip me-chip" href="#member/${esc(SELF.id || '')}" title="${esc(T('my_page'))}">${ic('users', 14)}<span class="hide-sm">${mm(selfName())}</span></a><button class="icon-btn me-out" onclick="App.memberLogout()" title="${esc(T('logout'))}" aria-label="${esc(T('logout'))}">${ICON.logout}</button>`
+             : `<button class="btn ghost sm" onclick="App.memberAuth()" title="${esc(T('member_login'))}">${ICON.users}<span class="hide-sm">${esc(T('member_login'))}</span></button>`}
       ${ADMIN ? `<button class="chip admin-on" onclick="App.logout()" title="${esc(T('logout'))}">★ ${mm(T('admin'))}</button>`
               : `<button class="btn ghost sm" onclick="App.login()">${ICON.lock}<span class="hide-sm">${mm(T('admin'))}</span></button>`}
     </div>`;
   $('#sidebar').innerHTML = NAV.map(n => n[0] === '-' ? '<div class="nav-sep"></div>' :
-    `<a class="nav-a ${VIEW === n[0] ? 'on' : ''}" href="#${n[0]}" onclick="App.toggleNav(false)">${ICON[n[2]]}<span>${mm(T(n[1]))}</span>${n[0] === 'settings' && !ADMIN ? `<span style="margin-left:auto;opacity:.5">${ICON.lock.replace('<svg', '<svg width="14"')}</span>` : ''}</a>`).join('')
+    `<a class="nav-a ${VIEW === n[0] ? 'on' : ''}" href="#${n[0]}" onclick="App.toggleNav(false)">${ICON[n[2]]}<span>${mm(T(n[1]))}</span>${!can(n[3]) ? `<span style="margin-left:auto;opacity:.5">${ic('lock', 14)}</span>` : ''}</a>`).join('')
     + `<div class="nav-foot">${esc(T(API ? 'live_badge' : 'draft_badge'))}</div>`;
 }
-const VIEWS = {member: viewMemberPage, home: viewHome, issue: viewIssue, registry: viewRegistry, requests: viewRequests, members: viewMembers, activities: viewActivities, history: viewHistory, settings: viewSettings};
+const VIEWS = {overview: viewOverview, ai: viewAI, member: viewMemberPage, home: viewHome, issue: viewIssue, registry: viewRegistry, requests: viewRequests, members: viewMembers, activities: viewActivities, history: viewHistory, settings: viewSettings};
 function renderView() {
   const m = $('#main');
-  m.innerHTML = (API && !CONNECTED ? lockView() : (VIEWS[VIEW] || viewHome)()) + footer();
+  m.innerHTML = (can(VIEW_NEED[VIEW] || 'public') ? (VIEWS[VIEW] || viewOverview)() : gateView(VIEW_NEED[VIEW])) + footer();
   $$('#sidebar .nav-a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + (VIEW === 'member' ? 'members' : VIEW)));
   countUp();
-  if (VIEW === 'issue' && UI.issueType) App.updPreview();
+  if (VIEW === 'issue' && UI.issueType && ADMIN) App.updPreview();
+  if (VIEW === 'ai') App.aiScroll();
+}
+function gateView(need) {
+  const adm = need === 'admin';
+  return `<div class="view"><div class="card empty gate"><div style="display:flex;justify-content:center">${logoHTML(96)}</div>
+    <h3 style="justify-content:center;margin:14px 0 6px">${ic('lock')} ${esc(T(adm ? 'login_needed' : 'members_only'))}</h3>
+    <p class="small muted">${esc(T(adm ? 'admin_only_note' : 'members_only_note'))}</p>
+    ${myRole() === 'self' && !adm ? `<div class="banner">${ICON.info}<span>${esc(T('pending_note'))}</span></div>` : ''}
+    <div class="inline" style="justify-content:center;flex-wrap:wrap">${adm || SELF ? '' : `<button class="btn primary" onclick="App.memberAuth()">${ICON.users} ${esc(T('member_login'))}</button>`}
+      <button class="btn ${adm ? 'primary' : ''}" onclick="App.login()">${ICON.lock} ${mm(T('admin'))}</button>
+      <a class="btn ghost" href="#overview">${esc(T('nav_overview'))}</a></div></div></div>`;
 }
 function lockView() {
   return `<div class="view"><div class="card empty" style="max-width:480px;margin:40px auto"><div style="display:flex;justify-content:center">${logoHTML(130)}</div>
@@ -1254,6 +1425,185 @@ function rerender() { renderChrome(); renderView(); }
 /* =========================================================
    VIEWS
    ========================================================= */
+/* ---------- public overview ---------- */
+function localStats() {
+  const y = curYear(), live = S.data.docs.filter(d => d.status !== 'void' && d.status !== 'draft');
+  const byType = {};
+  live.filter(d => +d.year === y).forEach(d => byType[d.type] = (byType[d.type] || 0) + 1);
+  const projects = S.data.requests.filter(r => r.kind === 'PRJ' && r.status === 'approved')
+    .map(r => ({title: r.title, code: r.code, start: r.start, end: r.end, docNo: r.docNo})).sort((a, b) => String(b.start).localeCompare(String(a.start)));
+  return {year: y, docsYear: live.filter(d => +d.year === y).length, docsTotal: live.length, byType, projects, members: S.data.members.filter(m => m.status !== 'pending').length};
+}
+const orgStats = () => (API && !can('member')) ? Object.assign({year: curYear(), docsYear: 0, docsTotal: 0, byType: {}, projects: [], members: 0}, S.stats || {}) : localStats();
+function viewOverview() {
+  const st = orgStats(), empty = `<div class="empty small">${esc(T('no_data'))}</div>`;
+  const acts = [...S.data.activities].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 6);
+  const hist = [...S.data.history].sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 5);
+  const mems = S.data.members.filter(m => m.status !== 'pending');
+  const counts = Object.keys(st.byType || {}).map(c => ({t: typeOf(c) || {code: c, c: '#64748b'}, n: st.byType[c]})).sort((a, b) => b.n - a.n);
+  const max = Math.max(1, ...counts.map(c => c.n));
+  const stat = (k, n, l, i) => `<div class="card stat" style="--i:${i}"><div class="ic">${ICON[k]}</div><div><b data-count="${n}">0</b><span>${mm(T(l))}</span></div></div>`;
+  return `<div class="view">
+    <section class="hero">
+      <div class="hero-logo">${logoHTML(124)}</div>
+      <div>
+        <div class="eyebrow">${mm(T('ov_eyebrow'))}</div>
+        <h1 class="mnw">${esc(L3('app_name','mnw'))}</h1>
+        <p class="hero-sub">${esc(L3('app_name','th'))}<br>${esc(L3('app_name','en'))}</p>
+        <p class="hero-sub small">${mm(T('ov_intro'))}</p>
+        <div class="hero-actions">
+          ${SELF ? `<a class="btn accent" href="#member/${esc(SELF.id || '')}">${ICON.users} ${esc(T('my_page'))}</a><button class="btn" onclick="App.editSelf('${esc(SELF.id || '')}')">${ICON.edit} ${esc(T('edit_cv'))}</button>`
+                 : `<button class="btn accent" onclick="App.memberAuth()">${ICON.users} ${esc(T('member_login'))}</button><button class="btn" onclick="App.register()">${ICON.plus} ${esc(T('register_member'))}</button>`}
+          ${can('member') ? `<a class="btn" href="#ai">${ICON.wand} MBSST AI</a>` : ''}
+        </div>
+      </div>
+    </section>
+    <section class="stats stagger">
+      ${stat('users', st.members, 'stat_members', 0)}${stat('cal', S.data.activities.length, 'stat_acts', 1)}
+      ${stat('folder', st.projects.length, 'stat_projects', 2)}${stat('file', st.docsYear, 'stat_docs', 3)}
+    </section>
+    <section class="grid2">
+      <div class="card"><h3>${ic('cal')} ${mm(T('ov_recent_acts'))}<span style="flex:1"></span><a class="btn ghost sm" href="#activities">${esc(T('view_all'))}</a></h3>
+        ${acts.length ? acts.map(a => `<div class="list-row" onclick="location.hash='activities'">${a.image && safeImg(a.image) ? `<img class="ov-thumb" src="${esc(safeImg(a.image))}" alt="" loading="lazy" onerror="this.remove()">` : `<span class="ov-thumb">${ICON.cal}</span>`}<div class="grow"><div class="t">${mm(L(a.title))}</div><div class="small muted">${fmtDate(a.date)}${a.place ? ' · ' + mm(a.place) : ''}</div></div></div>`).join('') : empty}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card"><h3>${ic('folder')} ${mm(T('ov_projects'))}</h3>
+          ${st.projects.length ? st.projects.slice(0, 6).map(p => `<div class="list-row" style="cursor:default">${badge('PRJ')}<div class="grow"><div class="t">${mm(p.title)}</div><div class="small muted"><span class="mono">${esc(p.code || '')}</span>${p.start ? ' · ' + fmtDate(p.start) : ''}</div></div></div>`).join('') : empty}
+        </div>
+        <div class="card"><h3>${mm(T('ov_work'))} · ${st.year}</h3>
+          ${counts.length ? counts.map(c => `<div class="bar"><span>${badge(c.t.code)}</span><i><em data-w="${c.n / max * 100}%" style="background:${c.t.c}"></em></i><b>${c.n}</b></div>`).join('') : empty}
+          <div class="small muted" style="margin-top:8px">${esc(T('ov_docs_total'))}: <b>${st.docsTotal}</b></div>
+        </div>
+      </div>
+    </section>
+    <section class="grid2" style="margin-top:16px">
+      <div class="card"><h3>${ic('users')} ${mm(T('nav_members'))}<span style="flex:1"></span><a class="btn ghost sm" href="#members">${esc(T('view_all'))}</a></h3>
+        ${mems.length ? `<div class="ov-faces">${mems.slice(0, 24).map(m => `<a href="#member/${m.id}" title="${esc(m.name)}">${avatarHTML(m)}</a>`).join('')}</div>` : empty}</div>
+      <div class="card"><h3>${ic('clock')} ${mm(T('nav_history'))}<span style="flex:1"></span><a class="btn ghost sm" href="#history">${esc(T('view_all'))}</a></h3>
+        ${hist.length ? hist.map(h => `<div class="list-row" style="cursor:default"><span class="chip mono">${esc(String(h.date || '').slice(0, 4))}</span><div class="grow t">${mm(L(h.title))}</div></div>`).join('') : empty}</div>
+    </section></div>`;
+}
+
+/* ---------- MBSST AI Organizational Space ---------- */
+function localAI() {
+  const d = {url: 'http://localhost:11434/v1', model: '', key: ''};
+  try { return Object.assign(d, JSON.parse(localStorage.getItem('mbsst_local_ai') || '{}')); } catch (e) { return d; }
+}
+function aiProviders() { const st = S.aiStatus || {}; return (API ? AI_SERVER.filter(p => st[p]) : []).concat(['local']); }
+function aiCur() {
+  const ps = aiProviders(), cfg = S.settings.ai || {};
+  let p = UI.ai.provider;
+  if (ps.indexOf(p) < 0) p = ps.indexOf(cfg.provider) >= 0 ? cfg.provider : ps[0];
+  let m = UI.ai.provider === p ? UI.ai.model : '';
+  if (!m) m = p === 'local' ? localAI().model : (((cfg.models || {})[p]) || [])[0] || '';
+  return {p, m};
+}
+function mdHTML(src) {
+  const inline = x => esc(x).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  const lines = String(src || '').replace(/\r/g, '').split('\n');
+  let out = '', list = null, i = 0;
+  const close = () => { if (list) { out += `</${list}>`; list = null; } };
+  const cells = r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+  while (i < lines.length) {
+    const l = lines[i]; let m;
+    if (/^\s*\|.*\|\s*$/.test(l) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) {
+      close();
+      out += '<div class="tbl-wrap"><table class="md-tbl"><thead><tr>' + cells(l).map(c => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>';
+      i += 2;
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { out += '<tr>' + cells(lines[i]).map(c => `<td>${inline(c)}</td>`).join('') + '</tr>'; i++; }
+      out += '</tbody></table></div>';
+      continue;
+    }
+    if ((m = /^#{1,6}\s+(.*)$/.exec(l))) { close(); out += `<h4>${inline(m[1])}</h4>`; }
+    else if ((m = /^\s*[-*•]\s+(.*)$/.exec(l))) { if (list !== 'ul') { close(); out += '<ul>'; list = 'ul'; } out += `<li>${inline(m[1])}</li>`; }
+    else if ((m = /^\s*\d+[.)]\s+(.*)$/.exec(l))) { if (list !== 'ol') { close(); out += '<ol>'; list = 'ol'; } out += `<li>${inline(m[1])}</li>`; }
+    else if (!l.trim()) close();
+    else { close(); out += `<p>${inline(l)}</p>`; }
+    i++;
+  }
+  close();
+  return out;
+}
+/* ข้อมูลภายในที่ส่งให้ AI — เฉพาะที่ผู้ใช้มีสิทธิ์เห็น และตัดข้อมูลติดต่อ/PIN ออกเสมอ */
+function aiContext() {
+  const cut = (x, n) => String(x || '').slice(0, n) || undefined;
+  return {
+    today: todayISO(), viewer_role: myRole(),
+    document_types: Object.fromEntries(types().map(t => [t.code, t.n.th || t.n.en || t.code])),
+    objectives: OBJECTIVES.map(o => ({code: o.c, name: L(o)})),
+    documents: S.data.docs.slice(-600).map(d => ({no: d.no, type: d.type, date: d.date, subject: cut(d.subject, 160), status: d.status, project: d.code || undefined, ref: d.ref || undefined, to: cut(d.to, 60), from: cut(d.from, 60)})),
+    requests: S.data.requests.map(r => { const p = payOf(r); return {kind: r.kind, title: cut(r.title, 160), status: r.status, amount_thb: r.amount, project: r.code || undefined, doc_no: r.docNo || undefined, submitted: (r.history[0] || {}).at, expense_category: p.cat, payment_type: p.ptype, paid_thb: p.paid ? p.paid.amt : undefined,
+      items: Array.isArray(r.items) && r.items.length ? r.items.map(x => `${x.name} ${x.qty}×${x.price}`).join('; ') : undefined}; }),
+    budget_2026_27: PAY_CATS.map(c => { const b = payBudget({id: '', kind: 'PAY', amount: 0, items: {cat: c.k, fy: PAY_FY}}); return {category: c.k, allocated_thb: c.a, remaining_thb: b ? b.before : c.a}; }),
+    members: S.data.members.map(m => ({name: m.name, position: m.role, status: m.status, university: m.univ || undefined, faculty: m.faculty || undefined, level: m.level || undefined, joined: m.joined || undefined, hometown: m.hometown || undefined, works: (m.works || []).length || undefined, cv: cut(m.cv, 400)})),
+    activities: S.data.activities.map(a => ({date: a.date, title: cut(L(a.title), 160), place: a.place || undefined, project: a.code || undefined, desc: cut(a.desc, 300)})),
+    history: S.data.history.map(h => ({date: h.date, title: cut(L(h.title), 160)}))
+  };
+}
+function aiSystem() {
+  return ['You are "MBSST AI Organizational Space", the internal analysis assistant of the Mon Buddhist Student\'s Society, Thailand (MBSST · ဂကောံကွးဘာတက္ကသိုလ်သင်မန် ဍုင်သေံ · ชมรมนักศึกษาพระสงฆ์มอญในประเทศไทย).',
+    'Answer, summarise, analyse and evaluate the organisation\'s work using only the JSON data below: the documents register, project/budget/payment requests, the 2026/27 budget allocation, members, activities and history.',
+    'If the data does not contain the answer, say so plainly and say which data would be needed. Never invent numbers, names, dates or document numbers; quote document numbers exactly as written.',
+    'When you evaluate, give the evidence behind each point (counts, dates, amounts in Thai baht), then concrete, practical recommendations.',
+    'Reply in the language of the question (Thai, Mon or English). Use short headings, bullet lists and tables where they help.',
+    'Contact details and PINs are deliberately excluded from the data.',
+    '', 'DATA (JSON):', JSON.stringify(aiContext())].join('\n');
+}
+async function aiLocalCall(model, system, msgs) {
+  const c = localAI(), base = c.url.replace(/\/+$/, '');
+  const res = await fetch(base + '/chat/completions', {method: 'POST', headers: Object.assign({'Content-Type': 'application/json'}, c.key ? {Authorization: 'Bearer ' + c.key} : {}),
+    body: JSON.stringify({model, messages: [{role: 'system', content: system}].concat(msgs), stream: false})});
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error('Local AI ' + res.status + ': ' + ((j.error && (j.error.message || j.error)) || res.statusText));
+  const ch = (j.choices || [])[0] || {};
+  return {text: (ch.message && ch.message.content) || '', model: j.model || model, usage: j.usage ? {in: j.usage.prompt_tokens || 0, out: j.usage.completion_tokens || 0} : null};
+}
+const aiErrText = e => { const m = String((e && e.message) || e); return /failed to fetch|networkerror|load failed/i.test(m) ? T('ai_local_fail') : ({ai_no_key: T('ai_no_key'), ai_limit: T('ai_limit'), ai_too_long: T('ai_too_long'), unauthorized: T('err_auth')})[m] || m; };
+const aiMsgHTML = (m, i) => m.role === 'user'
+  ? `<div class="ai-msg me"><div class="ai-bubble">${esc(m.content)}</div></div>`
+  : `<div class="ai-msg bot"><div class="ai-bubble ${m.err ? 'err' : ''}"><div class="md">${m.err ? esc(m.content) : mdHTML(m.content)}</div>
+      <div class="ai-foot small muted"><span>${esc(m.label || '')}${m.usage ? ` · ${money(m.usage.in)} → ${money(m.usage.out)} tokens` : ''}</span>${m.err ? '' : `<button class="icon-btn" style="width:28px;height:28px" onclick="App.aiCopy(${i})" title="${esc(T('copy'))}">${ic('copy', 14)}</button>`}</div></div></div>`;
+function viewAI() {
+  const provs = aiProviders(), cur = aiCur(), st = S.aiStatus;
+  const models = cur.p === 'local' ? [localAI().model].filter(Boolean) : (((S.settings.ai || {}).models || {})[cur.p] || []);
+  const noSetup = provs.length === 1 && !localAI().model;
+  return `<div class="view">
+    <div class="page-head"><h2>${ic('wand', 26)} MBSST AI Organizational Space</h2><span class="spacer"></span>
+      <button class="btn sm" onclick="App.aiLocal()">${ICON.cpu} Local AI</button>
+      ${UI.ai.msgs.length ? `<button class="btn sm ghost" onclick="App.aiClear()">${ICON.plus} ${esc(T('ai_new'))}</button>` : ''}</div>
+    ${noSetup ? `<div class="banner">${ICON.info}<span>${esc(T(ADMIN ? 'ai_setup_admin' : 'ai_setup_member'))}</span></div>` : ''}
+    <div class="card ai-bar">
+      ${fld(esc(T('ai_provider')), `<select class="inp" id="ai_prov" onchange="App.aiSet('p', this.value)">${provs.map(x => `<option value="${x}" ${x === cur.p ? 'selected' : ''}>${esc(AI_PROV[x])}</option>`).join('')}</select>`)}
+      ${fld(esc(T('ai_model')), `<input class="inp mono" id="ai_model" list="ai-models" value="${esc(cur.m)}" onchange="App.aiSet('m', this.value)"><datalist id="ai-models">${models.map(x => `<option value="${esc(x)}">`).join('')}</datalist>`)}
+      <div class="ai-meta small muted">${st && st.limit ? `${esc(T('ai_today'))} <b>${st.used}</b>/${st.limit}` : ''}${UI.ai.tin ? ` · tokens <b>${money(UI.ai.tin)}</b> → <b>${money(UI.ai.tout)}</b>` : ''}</div>
+    </div>
+    <div class="card ai-chat" id="ai-chat">
+      ${UI.ai.msgs.length ? UI.ai.msgs.map(aiMsgHTML).join('') : `<div class="ai-empty">${ic('wand', 40)}<h3>MBSST AI Organizational Space</h3><p class="small">${esc(T('ai_intro'))}</p>
+        <div class="ai-quick">${['ai_q_summary', 'ai_q_budget', 'ai_q_eval', 'ai_q_pending', 'ai_q_members'].map(k => `<button class="btn sm" onclick="App.aiQuick('${k}')">${esc(T(k))}</button>`).join('')}</div></div>`}
+      ${UI.ai.busy ? `<div class="ai-msg bot"><div class="ai-bubble"><span class="dots"><i></i><i></i><i></i></span> ${esc(T('ai_thinking'))}</div></div>` : ''}
+    </div>
+    <div class="card ai-input"><textarea class="inp" id="ai_in" rows="2" placeholder="${esc(T('ai_ph'))}" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();App.aiSend()}"></textarea>
+      <button class="btn primary" onclick="App.aiSend()" ${UI.ai.busy ? 'disabled' : ''}>${ICON.send} ${esc(T('ai_send'))}</button></div>
+    <p class="small muted" style="margin-top:10px">🔒 ${esc(T('ai_privacy'))}</p>
+  </div>`;
+}
+function setAI() {
+  const st = S.aiStatus || {}, ai = S.settings.ai || {models: {}};
+  return `<div class="set-grid">
+    <div class="card"><h3>${ic('wand')} ${esc(T('ai_keys'))}</h3>
+      <div class="banner">${ICON.info}<span>${esc(T(API ? 'ai_keys_note' : 'ai_keys_demo'))}</span></div>
+      ${AI_SERVER.map(p => `<div class="ai-key-row"><div><b>${esc(AI_PROV[p])}</b> <span class="st ${st[p] ? 'approved' : 'draft'}">${esc(T(st[p] ? 'ai_key_set' : 'ai_key_none'))}</span></div>
+        <div class="inline"><input class="inp mono" type="password" id="ak_${p}" placeholder="${esc(AI_KEY_PH[p])}" autocomplete="off" ${API ? '' : 'disabled'}>
+          <button class="btn sm primary" onclick="App.aiKey('${p}')" ${API ? '' : 'disabled'}>${esc(T('save'))}</button>
+          ${st[p] ? `<button class="btn sm danger" onclick="App.aiKey('${p}', true)" title="${esc(T('delete'))}">${ICON.trash}</button>` : ''}</div></div>`).join('')}
+      ${st.limit ? `<p class="small muted" style="margin-top:10px">${esc(T('ai_today'))}: ${st.used}/${st.limit} · ${esc(T('ai_limit_hint'))}</p>` : ''}
+    </div>
+    <div class="card"><h3>${esc(T('ai_models'))}</h3>
+      ${fld(esc(T('ai_default')), `<select class="inp" id="am_def" onchange="App.aiModels()">${AI_SERVER.concat(['local']).map(p => `<option value="${p}" ${ai.provider === p ? 'selected' : ''}>${esc(AI_PROV[p])}</option>`).join('')}</select>`)}
+      ${AI_SERVER.map(p => fld(esc(AI_PROV[p]), `<input class="inp mono" id="am_${p}" value="${esc(((ai.models || {})[p] || []).join(', '))}" onchange="App.aiModels()">`)).join('')}
+      <span class="small muted">${esc(T('ai_models_hint'))}</span></div></div>`;
+}
+
 function viewHome() {
   const y = curYear();
   const docsY = S.data.docs.filter(d => d.year === y && d.status !== 'void');
@@ -1270,7 +1620,7 @@ function viewHome() {
         <h1 class="mnw">${esc(L3('app_name','mnw'))}</h1>
         <p class="hero-sub">${esc(L3('app_name','th'))}<br>${esc(L3('app_name','en'))}</p>
         <div class="hero-actions">
-          <a class="btn accent" href="#issue">${ICON.stamp} ${mm(T('nav_issue'))}</a>
+          ${ADMIN ? `<a class="btn accent" href="#issue">${ICON.stamp} ${mm(T('nav_issue'))}</a>` : ''}
           <button class="btn" onclick="App.newRequest('PRJ')">${ICON.upload} ${mm(T('req_new'))}</button>
           <a class="btn" href="#registry">${ICON.list} ${mm(T('nav_registry'))}</a>
         </div>
@@ -1365,7 +1715,7 @@ function viewRegistry() {
     <div class="page-head"><h2>${ICON.list.replace('<svg', '<svg width="26"')} ${mm(T('nav_registry'))}</h2><span class="spacer"></span>
       <button class="btn" onclick="App.printRegister()">${ICON.print} ${esc(T('print'))}</button>
       <button class="btn" onclick="App.exportCSV()">${ICON.download} ${esc(T('export_csv'))}</button>
-      <a class="btn primary" href="#issue">${ICON.plus} ${mm(T('nav_issue'))}</a></div>
+      ${ADMIN ? `<a class="btn primary" href="#issue">${ICON.plus} ${mm(T('nav_issue'))}</a>` : ''}</div>
     <div class="tabs">${[['out','tab_out'],['in','tab_in'],['all','all']].map(([k, l]) => `<button class="${f.tab === k ? 'on' : ''}" onclick="App.regSet('tab','${k}')">${mm(T(l))}</button>`).join('')}</div>
     <div class="toolbar">
       <div class="search">${ICON.search}<input class="inp" placeholder="${esc(T('search'))} — ${esc(T('number'))}, ${esc(T('subject'))}…" value="${esc(f.q)}" oninput="App.regSet('q',this.value,true)"></div>
@@ -1420,8 +1770,8 @@ function viewMembers() {
   const sts = ['', 'active', 'alumni', 'friend', 'advisor'].concat(ADMIN ? ['pending'] : []);
   return `<div class="view">
     <div class="page-head"><h2>${ICON.users.replace('<svg', '<svg width="26"')} ${mm(T('nav_members'))}</h2><span class="spacer"></span>
-      <button class="btn" onclick="App.selfEdit()">${ICON.edit} ${esc(T('self_edit'))}</button>
-      <button class="btn primary" onclick="App.register()">${ICON.plus} ${esc(T('register_member'))}</button>
+      ${SELF ? `<a class="btn primary" href="#member/${esc(SELF.id || '')}">${ICON.users} ${esc(T('my_page'))}</a>`
+             : `<button class="btn" onclick="App.memberAuth()">${ICON.users} ${esc(T('member_login'))}</button><button class="btn primary" onclick="App.register()">${ICON.plus} ${esc(T('register_member'))}</button>`}
       ${ADMIN ? `<button class="btn" onclick="App.editMember()">${ICON.users} ${esc(T('mem_add'))}</button>` : ''}</div>
     <div class="toolbar"><div class="search">${ICON.search}<input class="inp" placeholder="${esc(T('search'))}" value="${esc(f.q)}" oninput="App.memSet('q',this.value)"></div>
       ${sts.map(s => `<button class="btn sm ${f.st === s ? 'primary' : ''}" onclick="App.memSet('st','${s}')">${mm(s ? T('ms_' + s) : T('all'))}</button>`).join('')}</div>
@@ -1432,7 +1782,7 @@ function viewMembers() {
           <div class="nm">${mm(m.name)}</div>
           ${m.nameAlt ? `<div class="small muted">${mm(m.nameAlt)}</div>` : ''}
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span class="chip">${mm(role(m.role))}</span><span class="chip ${m.status === 'pending' ? 'admin-on' : ''}">${mm(T('ms_' + m.status))}</span></div>
-          <div class="small muted mono" style="margin-top:4px">${esc(m.no || '—')}</div>
+          ${m.no ? `<div class="small muted mono" style="margin-top:4px">${esc(m.no)}</div>` : ''}
           ${m.univ ? `<div class="small muted">${mm(m.univ)}</div>` : ''}
         </div></div>`).join('')}</div>` : `<div class="card empty">${esc(T('no_data'))}</div>`}
   </div>`;
@@ -1440,12 +1790,12 @@ function viewMembers() {
 function viewMemberPage() {
   const m = S.data.members.find(x => x.id === UI.memberId);
   if (!m) return `<div class="view"><div class="card empty">${esc(T('no_data'))}<div style="margin-top:12px"><a class="btn" href="#members">← ${mm(T('nav_members'))}</a></div></div></div>`;
-  const self = UI.self && UI.self.id === m.id, priv = ADMIN || self;
+  const self = !!SELF && SELF.id === m.id, priv = ADMIN || self;
   const row = (k, v) => v ? `<dt>${esc(T(k))}</dt><dd>${mm(String(v))}</dd>` : '';
   return `<div class="view">
     <div class="page-head"><a class="btn ghost sm" href="#members">← ${mm(T('nav_members'))}</a><span class="spacer"></span>
       <button class="btn" onclick="App.printMember('${m.id}')">${ICON.print} ${esc(T('print'))}</button>
-      ${self ? `<button class="btn primary" onclick="App.editSelf('${m.id}')">${ICON.edit} ${esc(T('self_edit'))}</button>` : ''}
+      ${self ? `<button class="btn primary" onclick="App.editSelf('${m.id}')">${ICON.edit} ${esc(T('self_edit'))}</button><button class="btn ghost" onclick="App.memberLogout()">${ICON.logout} ${esc(T('logout'))}</button>` : ''}
       ${ADMIN ? `<button class="btn" onclick="App.editMember('${m.id}')">${ICON.edit} ${esc(T('edit'))}</button>` : ''}</div>
     <section class="card profile">
       <div class="pf-cover"></div>
@@ -1453,7 +1803,11 @@ function viewMemberPage() {
         <div style="padding-bottom:6px"><h2>${mm(m.name)}</h2>${m.nameAlt ? `<div class="muted">${mm(m.nameAlt)}</div>` : ''}
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><span class="chip">${mm(role(m.role))}</span><span class="chip">${mm(T('ms_' + m.status))}</span>${m.no ? `<span class="chip mono">${esc(m.no)}</span>` : ''}</div></div></div>
       <div class="pf-body">
-        <div>${m.bio ? `<h3>${esc(T('bio'))}</h3><div class="bio">${mm(m.bio)}</div>` : `<div class="muted">${esc(T('no_data'))}</div>`}</div>
+        <div>${m.bio ? `<h3>${esc(T('bio'))}</h3><div class="bio">${mm(m.bio)}</div>` : ''}
+          ${m.cv ? `<h3 style="margin-top:16px">${esc(T('cv'))}</h3><div class="bio">${mm(m.cv)}</div>` : ''}
+          ${(m.works || []).length ? `<h3 style="margin-top:16px">${esc(T('works'))}</h3><div class="works">${m.works.map(w => `<a class="work" ${w.url && safeUrl(w.url) !== '#' ? `href="${esc(safeUrl(w.url))}" target="_blank" rel="noopener"` : ''}>${ic('file', 16)}<span class="grow">${mm(w.title || w.url)}</span>${w.year ? `<span class="chip mono">${esc(w.year)}</span>` : ''}</a>`).join('')}</div>` : ''}
+          ${!m.bio && !m.cv && !(m.works || []).length ? `<div class="muted">${esc(T(self ? 'cv_empty_self' : 'no_data'))}</div>` : ''}
+          ${self ? `<div class="banner" style="margin-top:16px">${ICON.info}<span>${esc(T(m.pub === 'yes' ? 'pub_on' : 'pub_off'))}</span></div>` : ''}</div>
         <dl class="kv">${row('univ', m.univ)}${row('faculty', m.faculty)}${row('level', m.level ? T(m.level) : '')}${row('hometown', m.hometown)}${row('ordained', m.ordained)}${row('joined', m.joined)}
           ${priv ? row('phone', m.phone) + row('email', m.email) + row('contact', m.contact) + row('birth', m.birth ? fmtDate(m.birth) : '') + row('address', m.address) : ''}</dl>
       </div>
@@ -1467,16 +1821,24 @@ function profileForm(m = {}, opts = {}) {
     <div class="row2">${fld(T('name'), `<input class="inp" id="p_name" value="${esc(m.name || '')}">`, 1)}${f('name_alt', 'p_alt', m.nameAlt)}</div>
     <div class="row3">${f('univ', 'p_univ', m.univ)}${f('faculty', 'p_fac', m.faculty)}
       ${fld(T('level'), `<select class="inp" id="p_level"><option value=""></option>${['lv_ba','lv_ma','lv_phd','lv_other'].map(k => `<option value="${k}" ${m.level === k ? 'selected' : ''}>${esc(T(k))}</option>`).join('')}</select>`)}</div>
-    <div class="row3">${f('hometown', 'p_home', m.hometown)}${f('ordained', 'p_ord', m.ordained, 'number')}${f('joined', 'p_join', m.joined || curYear(), 'number')}</div>
+    <div class="row3">${f('hometown', 'p_home', m.hometown)}${f('ordained', 'p_ord', m.ordained, 'number')}${f('joined', 'p_join', m.joined || (/^\d{8}$/.test(m.no || '') ? m.no.slice(0, 4) : curYear()), 'number')}</div>
     ${fld(T('bio'), `<textarea class="inp" id="p_bio" rows="5">${esc(m.bio || '')}</textarea>`)}
+    ${fld(esc(T('cv')), `<textarea class="inp" id="p_cv" rows="7" placeholder="${esc(T('cv_ph'))}">${esc(m.cv || '')}</textarea>`)}
+    <div class="fld"><span>${esc(T('works'))}</span><div id="p_works">${((m.works || []).length ? m.works : [{}]).map(workRow).join('')}</div>
+      <div class="inline" style="flex-wrap:wrap"><button type="button" class="btn ghost sm" onclick="App.addWork()">${ICON.plus} ${esc(T('work_add'))}</button><span class="small muted">${esc(T(canUpload() ? 'work_hint' : 'work_hint_login'))}</span></div></div>
+    <label class="consent"><input type="checkbox" id="p_pub" ${m.pub === 'yes' ? 'checked' : ''}><span>${esc(T('pub_consent'))}</span></label>
     <div class="priv"><div class="priv-h">🔒 ${esc(T('private_info'))}</div>
       <div class="row2">${f('phone', 'p_phone', m.phone, 'tel')}${f('email', 'p_email', m.email, 'email')}</div>
       <div class="row2">${f('contact', 'p_contact', m.contact)}${f('birth', 'p_birth', m.birth, 'date')}</div>
       ${fld(T('address'), `<textarea class="inp" id="p_addr" rows="2">${esc(m.address || '')}</textarea>`)}</div>
+    ${opts.pin ? `<div class="priv"><div class="priv-h">🔑 ${esc(T(opts.pin === 'new' ? 'pin_set' : 'pin_change'))}</div>
+      <div class="row2">${fld(esc(T('pin')), '<input class="inp mono" type="password" id="p_pin" autocomplete="new-password">', opts.pin === 'new')}${fld(esc(T('pin_again')), '<input class="inp mono" type="password" id="p_pin2" autocomplete="new-password">', opts.pin === 'new')}</div>
+      <span class="small muted">${esc(T('pin_rule'))}</span></div>` : ''}
     ${opts.consent ? `<label class="consent"><input type="checkbox" id="p_consent"><span>${esc(T('pdpa_consent'))}</span></label>` : ''}`;
 }
 const readProfile = () => ({name: val('p_name'), nameAlt: val('p_alt'), univ: val('p_univ'), faculty: val('p_fac'), level: val('p_level'), hometown: val('p_home'),
-  ordained: val('p_ord'), joined: val('p_join'), bio: val('p_bio'), phone: val('p_phone'), email: val('p_email'), contact: val('p_contact'), birth: val('p_birth'), address: val('p_addr')});
+  ordained: val('p_ord'), joined: val('p_join'), bio: val('p_bio'), phone: val('p_phone'), email: val('p_email'), contact: val('p_contact'), birth: val('p_birth'), address: val('p_addr'),
+  cv: val('p_cv'), works: readWorks(), pub: ($('#p_pub') || {}).checked ? 'yes' : ''});
 
 /* ---------- activities ---------- */
 function viewActivities() {
@@ -1519,8 +1881,8 @@ function viewHistory() {
 /* ---------- settings ---------- */
 function viewSettings() {
   if (!ADMIN) return `<div class="view"><div class="card empty" style="max-width:460px;margin:40px auto">${ICON.lock}<h3 style="justify-content:center;margin:10px 0">${esc(T('login_needed'))}</h3><button class="btn primary" onclick="App.login()">${ICON.lock} ${esc(T('login'))}</button></div></div>`;
-  const tabs = [['appearance','set_appearance'],['texts','set_texts'],['logo','set_logo'],['types','set_types'],['links','set_links'],['data','set_data']];
-  const body = {appearance: setAppearance, texts: setTexts, logo: setLogo, types: setTypes, links: setLinks, data: setData}[UI.set]();
+  const tabs = [['appearance','set_appearance'],['texts','set_texts'],['logo','set_logo'],['types','set_types'],['links','set_links'],['ai','set_ai'],['data','set_data']];
+  const body = ({appearance: setAppearance, texts: setTexts, logo: setLogo, types: setTypes, links: setLinks, ai: setAI, data: setData}[UI.set] || setAppearance)();
   return `<div class="view"><div class="page-head"><h2>${ICON.gear.replace('<svg', '<svg width="26"')} ${mm(T('nav_settings'))}</h2></div>
     <div class="tabs">${tabs.map(([k, l]) => `<button class="${UI.set === k ? 'on' : ''}" onclick="App.setTab('${k}')">${esc(T(l))}</button>`).join('')}</div>
     <div id="set-body">${body}</div></div>`;
@@ -1669,20 +2031,25 @@ const App = {
     if (API) App.connect(); else rerender();
     toast(T('logout'));
   },
-  async connect() {
-    if (!KEY.club && !KEY.admin) { CONNECTED = false; rerender(); return; }
+  async connect(retry) {
     try {
       const j = await api('bootstrap');
       const d = j.data;
-      S.data = {docs: d.Docs, requests: d.Requests, members: d.Members, activities: d.Activities, history: d.History,
+      S.data = {docs: d.Docs || [], requests: d.Requests || [], members: d.Members || [], activities: d.Activities || [], history: d.History || [],
         log: (j.log || []).map(l => ({t: l.time, u: l.role, a: l.action, x: l.target}))};
+      S.stats = j.stats || null; S.aiStatus = j.ai || null;
       Object.keys(j.settings || {}).forEach(k => { const v = j.settings[k]; if (SHARED.indexOf(k) >= 0 && v !== '' && v != null) S.settings[k] = v; });
-      ADMIN = j.role === 'admin'; CONNECTED = true; save(); rerender();
+      ROLE = j.role || 'public'; ADMIN = ROLE === 'admin';
+      if (SELF && j.self) SELF.id = j.self.id;
+      CONNECTED = true; save(); rerender();
     } catch (e) {
       CONNECTED = false;
-      if (String(e.message) === 'unauthorized') {
+      if (String(e.message) === 'unauthorized' && !retry) {
         if (KEY.admin) { KEY.admin = ''; try { sessionStorage.removeItem('mbsst_admin'); } catch (_) {} }
+        else if (SELF) App.setSelf(null);
         else { KEY.club = ''; try { localStorage.removeItem('mbsst_key'); } catch (_) {} }
+        toast(T('session_expired'), 'bad');
+        return App.connect(true);
       }
       rerender(); apiErr(e);
     }
@@ -1776,8 +2143,8 @@ const App = {
     const d = S.data.docs.find(x => x.id === id); if (!d) return;
     const t = typeOf(d.type) || {n: {}}, isIn = t.g === 'in';
     const acts = [{label: `${ICON.copy} ${esc(T('copy'))}`, on: () => { copyText(d.no); return false; }}, {label: `${ICON.print} ${esc(T('print'))}`, on: () => { App.printDoc(id); return false; }}];
-    if (d.status !== 'void') acts.push({label: `${ICON.edit} ${esc(T('edit'))}`, on: () => setTimeout(() => App.editDoc(id), 220)});
-    if (d.status === 'draft') acts.push({label: esc(T('mark_issued')), cls: 'primary', on: () => { App.saveDoc(d, {status: 'issued'}, T('st_issued') + ' · ' + d.no); }});
+    if (ADMIN && d.status !== 'void') acts.push({label: `${ICON.edit} ${esc(T('edit'))}`, on: () => setTimeout(() => App.editDoc(id), 220)});
+    if (ADMIN && d.status === 'draft') acts.push({label: esc(T('mark_issued')), cls: 'primary', on: () => { App.saveDoc(d, {status: 'issued'}, T('st_issued') + ' · ' + d.no); }});
     if (ADMIN && d.status !== 'void') acts.push({label: esc(T('void_doc')), cls: 'danger', on: () => setTimeout(() => App.voidDoc(id), 220)});
     const mt = d.meeting;
     modal({title: `${badge(d.type)} <span class="mono">${esc(d.no)}</span>`, size: 'lg', body: `
@@ -2034,8 +2401,8 @@ const App = {
     modal({title: `${ICON.users.replace('<svg', '<svg width="20"')} ${esc(isNew ? T('mem_add') : T('edit'))}`, size: 'lg', body: `
       <div class="row3">${fld(T('role'), roleSelect('m_role', m.role))}
         ${fld(T('status'), `<select class="inp" id="m_st">${['active','alumni','friend','advisor','pending'].map(s => `<option value="${s}" ${m.status === s ? 'selected' : ''}>${esc(T('ms_' + s))}</option>`).join('')}</select>`)}
-        ${fld(T('mem_no'), `<input class="inp mono" id="m_no" value="${esc(m.no || '')}" placeholder="auto: MBSST/ปี/ลำดับ">`)}</div>
-      <div class="fld"><span>${esc(T('member_code'))}</span><div class="inline"><input class="inp mono" id="m_code" value="${esc(m.editCode || (isNew ? genCode() : ''))}"><button type="button" class="btn" onclick="document.getElementById('m_code').value=App.genCode()">${esc(T('reset_code'))}</button></div></div>
+        ${fld(esc(T('mem_id')), `<input class="inp mono" id="m_no" value="${esc(m.no || '')}" inputmode="numeric" placeholder="20150020">`)}</div>
+      <div class="fld"><span>${esc(T('pin'))}</span><div class="inline" style="flex-wrap:wrap"><input class="inp mono" id="m_code" value="" autocomplete="off" placeholder="${esc(T(m.hasPin || m.editCode ? 'pin_is_set' : 'pin_not_set_admin'))}">${m.hasPin || m.editCode ? `<label class="chk"><input type="checkbox" id="m_reset"> ${esc(T('pin_reset'))}</label>` : ''}</div><span class="small muted">${esc(T('pin_admin_hint'))}</span></div>
       ${profileForm(m)}
       ${fld(T('note'), `<textarea class="inp" id="m_note" rows="2">${esc(m.note || '')}</textarea>`)}`,
       actions: [...(isNew ? [] : [{label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: () => {
@@ -2046,7 +2413,11 @@ const App = {
           (async () => {
             try {
               const p = readProfile(), ph = await App.uploadPhoto(); if (ph) p.photo = ph;
-              const o = Object.assign(p, {role: val('m_role'), status: val('m_st'), no: val('m_no') || nextMemberNo(p.joined || curYear()), editCode: val('m_code').toUpperCase(), note: val('m_note')});
+              const code = val('m_code').toUpperCase(), reset = !!($('#m_reset') || {}).checked;
+              if (code && !/^[A-Z0-9]{4,12}$/.test(code)) { btn.classList.remove('loading'); toast(T('pin_rule'), 'bad'); return; }
+              const o = Object.assign(p, {role: val('m_role'), status: val('m_st'), no: val('m_no').toUpperCase() || nextMemberNo(p.joined || curYear()), note: val('m_note')},
+                API ? {editCode: code, resetPin: reset} : {editCode: reset ? '' : (code || m.editCode || '')});
+              if (S.data.members.some(x => x.no === o.no && x.id !== m.id)) { btn.classList.remove('loading'); toast(T('id_taken'), 'bad'); return; }
               const sv = await persist('members', isNew ? Object.assign({id: uid()}, o) : Object.assign({}, m, o));
               if (isNew) S.data.members.push(sv); else Object.assign(m, sv);
               audit(isNew ? 'add member' : 'edit member', o.name); save(); close(); renderView(); toast(T('saved'));
@@ -2068,80 +2439,227 @@ const App = {
     return j.file.thumb;
   },
   register() {
-    modal({title: `${ICON.users.replace('<svg', '<svg width="20"')} ${esc(T('register_member'))}`, size: 'lg',
-      body: `<div class="banner">${ICON.info}<span>${esc(T('register_note'))}</span></div>${profileForm({}, {consent: true})}`,
+    if (SELF) { App.editSelf(SELF.id); return; }
+    modal({title: `${ic('users', 20)} ${esc(T('register_member'))}`, size: 'lg',
+      body: `<div class="banner">${ICON.info}<span>${esc(T('register_note'))}</span></div>${profileForm({}, {consent: true, pin: 'new'})}`,
       actions: [{label: esc(T('cancel'))}, {label: `${ICON.upload} ${esc(T('submit'))}`, cls: 'primary', on: (_, close, btn) => {
         if (!requireFields(['p_name'])) return false;
         if (!$('#p_consent').checked) { toast(T('pdpa_need'), 'bad'); return false; }
+        const pin = readPin(true); if (pin === null) return false;
         btn.classList.add('loading');
         (async () => {
           try {
-            const p = readProfile(), ph = await App.uploadPhoto(); if (ph) p.photo = ph;
-            let res;
-            if (API) { res = await api('register', {obj: p}); S.data.members.push(res.member); }
-            else {
-              const m = Object.assign({id: uid(), role: 'member', status: 'pending', no: nextMemberNo(p.joined || curYear()), editCode: genCode(), note: ''}, p);
-              S.data.members.push(m); audit('register', m.name); save(true); res = {member: m, code: m.editCode};
+            const p = readProfile();
+            let m;
+            if (API) {
+              m = (await api('register', {obj: Object.assign({}, p, {pin})})).member;
+              App.setSelf({no: m.no, pin, id: m.id}, false);
+              const ph = await App.uploadPhoto();
+              if (ph) m = (await api('memberSave', {obj: {photo: ph}})).member;
+            } else {
+              const ph = await App.uploadPhoto(); if (ph) p.photo = ph;
+              m = Object.assign({id: uid(), role: 'member', status: 'pending', no: nextMemberNo(p.joined || curYear()), editCode: pin.toUpperCase(), note: ''}, p);
+              S.data.members.push(m); audit('register', m.name); save(true);
+              App.setSelf({no: m.no, pin, id: m.id}, false);
             }
-            UI.self = {no: res.member.no, code: res.code, id: res.member.id};
-            close(); setTimeout(() => App.showCode(res.member, res.code), 220);
+            close(); setTimeout(() => App.showCode(m), 220);
+            if (API) App.connect(); else rerender();
           } catch (e) { btn.classList.remove('loading'); apiErr(e); }
         })();
         return false;
       }}]});
   },
-  showCode(m, code) {
+  showCode(m) {
     modal({title: `${ICON.check.replace('<svg', '<svg width="20" style="color:var(--ok)"')} ${esc(T('your_code_title'))}`, body: `
-      <div class="stamp-wrap"><div class="stamp"><small>${esc(T('mem_no'))}</small><b class="mono">${esc(m.no)}</b><span>${esc(T('member_code'))}: <b class="mono">${esc(code)}</b></span></div></div>
+      <div class="stamp-wrap"><div class="stamp"><small>${esc(T('mem_id'))}</small><b class="mono">${esc(m.no)}</b><span>${esc(T('ms_pending'))}</span></div></div>
       <p class="small" style="text-align:center">${esc(T('your_code_note'))}</p>`,
-      actions: [{label: `${ICON.copy} ${esc(T('copy'))}`, on: () => { copyText(m.no + ' / ' + code); return false; }},
+      actions: [{label: `${ICON.copy} ${esc(T('copy'))}`, on: () => { copyText(m.no); return false; }},
                 {label: esc(T('view_page')), cls: 'primary', on: () => { location.hash = 'member/' + m.id; }}]});
     burst(innerWidth / 2, innerHeight / 2 - 40);
   },
-  selfEdit() {
-    modal({title: `${ICON.edit.replace('<svg', '<svg width="20"')} ${esc(T('self_edit'))}`, body: `
-      ${fld(T('mem_no'), '<input class="inp mono" id="se_no" placeholder="MBSST/2026/001" autocomplete="username">', 1)}
-      ${fld(T('member_code'), '<input class="inp mono" id="se_code" type="password" autocomplete="current-password">', 1)}
-      <p class="small muted">${esc(T('member_code_hint'))}</p>`,
-      actions: [{label: esc(T('cancel'))}, {label: esc(T('confirm')), cls: 'primary', on: (_, close, btn) => {
-        if (!requireFields(['se_no', 'se_code'])) return false;
-        const no = val('se_no').toUpperCase(), code = val('se_code').toUpperCase();
+  setSelf(o, remember) {
+    SELF = o;
+    if (o) KEY.club = '';
+    try {
+      sessionStorage.removeItem('mbsst_self'); localStorage.removeItem('mbsst_self');
+      if (o) { localStorage.removeItem('mbsst_key'); (remember ? localStorage : sessionStorage).setItem('mbsst_self', JSON.stringify(o)); }
+    } catch (e) {}
+  },
+  memberAuth() {
+    modal({title: `${ic('users', 20)} ${esc(T('member_login'))}`, body: `
+      <div class="banner">${ICON.info}<span>${esc(T('member_login_note'))}</span></div>
+      ${fld(esc(T('mem_id')), '<input class="inp mono" id="ml_no" inputmode="numeric" placeholder="20150020" autocomplete="username" maxlength="20">', 1)}
+      ${fld(esc(T('pin')), '<input class="inp mono" id="ml_pin" type="password" autocomplete="current-password" placeholder="••••">')}
+      <label class="consent"><input type="checkbox" id="ml_rem"><span>${esc(T('remember_me'))}</span></label>
+      <p class="small muted">${esc(T('member_login_hint'))}</p>`,
+      actions: [{label: esc(T('cancel'))}, {label: esc(T('login')), cls: 'primary', on: (_, close, btn) => {
+        if (!requireFields(['ml_no'])) return false;
+        const no = val('ml_no').toUpperCase(), pin = val('ml_pin'), rem = $('#ml_rem').checked;
         btn.classList.add('loading');
-        App.memberLogin(no, code).then(m => { UI.self = {no, code, id: m.id}; close(); setTimeout(() => App.openProfileForm(m), 220); })
-          .catch(e => { btn.classList.remove('loading'); apiErr(e); });
+        App.memberLogin(no, pin).then(m => { close(); App.loggedIn(m, pin, rem); })
+          .catch(e => {
+            btn.classList.remove('loading');
+            if (String(e.message) === 'pin_not_set') { close(); setTimeout(() => App.firstPin(no, rem), 220); } else apiErr(e);
+          });
+        return false;
+      }}]});
+    setTimeout(() => { $$('#ml_no,#ml_pin').forEach(p => p.addEventListener('keydown', e => { if (e.key === 'Enter') $('.modal-wrap:last-child .modal-foot .primary').click(); })); const n = $('#ml_no'); n && n.focus(); }, 60);
+  },
+  firstPin(no, rem) {
+    modal({title: `🔑 ${esc(T('pin_first_title'))}`, body: `
+      <div class="banner">${ICON.info}<span>${esc(T('pin_first_note'))}</span></div>
+      <div style="margin-bottom:12px"><span class="chip mono">${esc(no)}</span></div>
+      <div class="row2">${fld(esc(T('pin')), '<input class="inp mono" type="password" id="p_pin" autocomplete="new-password">', 1)}${fld(esc(T('pin_again')), '<input class="inp mono" type="password" id="p_pin2" autocomplete="new-password">', 1)}</div>
+      <span class="small muted">${esc(T('pin_rule'))}</span>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: (_, close, btn) => {
+        const pin = readPin(true); if (pin === null) return false;
+        btn.classList.add('loading');
+        App.memberLogin(no, pin, true).then(m => { close(); toast(T('pin_saved')); App.loggedIn(m, pin, rem); }).catch(e => { btn.classList.remove('loading'); apiErr(e); });
         return false;
       }}]});
   },
-  async memberLogin(no, code) {
+  async memberLogin(no, pin, setPin) {
     if (API) {
-      const j = await api('memberLogin', {no, code}), m = j.member;
+      const m = (await api('memberLogin', {no, pin, setPin: !!setPin})).member;
       const i = S.data.members.findIndex(x => x.id === m.id);
       if (i >= 0) S.data.members[i] = Object.assign({}, S.data.members[i], m); else S.data.members.push(m);
       return m;
     }
-    const m = S.data.members.find(x => x.no === no && x.editCode && x.editCode === code);
+    const m = S.data.members.find(x => String(x.no || '').toUpperCase() === no);
     if (!m) throw new Error('code_wrong');
+    if (!m.editCode) { if (!setPin) throw new Error('pin_not_set'); m.editCode = pin.toUpperCase(); save(true); return m; }
+    if (m.editCode.toUpperCase() !== String(pin).toUpperCase()) throw new Error('code_wrong');
     return m;
   },
-  editSelf(id) { const m = S.data.members.find(x => x.id === id); if (m && UI.self && UI.self.id === id) App.openProfileForm(m); },
+  loggedIn(m, pin, rem) {
+    App.setSelf({no: m.no, pin, id: m.id}, rem);
+    toast(T('welcome_member') + ' · ' + m.name);
+    if (location.hash === '#member/' + m.id) rerender(); else location.hash = 'member/' + m.id;
+    if (API) App.connect(); else rerender();
+  },
+  memberLogout() {
+    App.setSelf(null);
+    if (!KEY.admin) { ROLE = 'public'; ADMIN = false; }
+    if (!can(VIEW_NEED[VIEW] || 'public')) location.hash = 'overview';
+    UI.ai = {msgs: [], provider: null, model: '', busy: false, tin: 0, tout: 0};
+    rerender(); toast(T('logout'));
+    if (API) App.connect();
+  },
+  editSelf(id) { const m = S.data.members.find(x => x.id === id); if (m && SELF && SELF.id === id) App.openProfileForm(m); },
   openProfileForm(m) {
-    modal({title: `${ICON.users.replace('<svg', '<svg width="20"')} ${esc(T('self_edit'))} · <span class="mono">${esc(m.no)}</span>`, size: 'lg', body: profileForm(m),
+    modal({title: `${ic('users', 20)} ${esc(T('edit_cv'))} · <span class="mono">${esc(m.no)}</span>`, size: 'lg', body: profileForm(m, {pin: 'change'}),
       actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: (_, close, btn) => {
         if (!requireFields(['p_name'])) return false;
+        const newPin = readPin(false); if (newPin === null) return false;
         btn.classList.add('loading');
         (async () => {
           try {
             const p = readProfile(), ph = await App.uploadPhoto(); if (ph) p.photo = ph;
             let sv;
-            if (API) sv = (await api('memberSave', {no: UI.self.no, code: UI.self.code, obj: p})).member;
-            else { SELF_FIELDS.forEach(k => { if (p[k] !== undefined) m[k] = p[k]; }); audit('self edit', m.no); save(true); sv = m; }
+            if (API) sv = (await api('memberSave', Object.assign({obj: p}, newPin ? {newPin} : {}))).member;
+            else { SELF_FIELDS.forEach(k => { if (p[k] !== undefined) m[k] = p[k]; }); if (newPin) m.editCode = newPin.toUpperCase(); audit('self edit', m.no); save(true); sv = m; }
+            if (newPin) { let rem = false; try { rem = !!localStorage.getItem('mbsst_self'); } catch (e) {} App.setSelf(Object.assign({}, SELF, {pin: newPin}), rem); }
             const i = S.data.members.findIndex(x => x.id === sv.id); if (i >= 0) Object.assign(S.data.members[i], sv);
             close(); toast(T('my_profile_saved')); burst(innerWidth / 2, 180);
-            if (location.hash === '#member/' + sv.id) renderView(); else location.hash = 'member/' + sv.id;
+            if (location.hash === '#member/' + sv.id) rerender(); else location.hash = 'member/' + sv.id;
           } catch (e) { btn.classList.remove('loading'); apiErr(e); }
         })();
         return false;
       }}]});
+  },
+  addWork() { $('#p_works').insertAdjacentHTML('beforeend', workRow()); },
+  async uploadWork(inp) {
+    const f = inp.files[0]; if (!f) return;
+    if (f.size > 8 * 1024 * 1024) { toast(f.name + ' > 8 MB', 'bad'); return; }
+    const row = inp.closest('.work-row'), t = row.querySelector('[data-k=title]'), u = row.querySelector('[data-k=url]');
+    if (!t.value) t.value = f.name.replace(/\.[^.]+$/, '');
+    if (!API) { toast(T('work_demo'), 'bad'); return; }
+    try {
+      toast(T('uploading') + ' ' + f.name);
+      const j = await api('upload', {name: f.name, mime: f.type || 'application/octet-stream', data: await fileToB64(f), publicWork: true});
+      u.value = j.file.url; toast(T('saved') + ' · ' + f.name);
+    } catch (e) { apiErr(e); }
+  },
+
+  /* MBSST AI Organizational Space */
+  aiSet(k, v) {
+    if (k === 'p') { UI.ai.provider = v; UI.ai.model = v === 'local' ? localAI().model : ((((S.settings.ai || {}).models || {})[v]) || [])[0] || ''; App.aiRender(); }
+    else { const c = aiCur(); UI.ai.provider = c.p; UI.ai.model = v.trim(); }
+  },
+  aiQuick(k) { App.aiSend(T(k)); },
+  aiClear() { UI.ai.msgs = []; UI.ai.tin = UI.ai.tout = 0; App.aiRender(); },
+  aiCopy(i) { const m = UI.ai.msgs[i]; if (m) copyText(m.content); },
+  aiScroll() { const c = $('#ai-chat'); if (c) c.scrollTop = c.scrollHeight; },
+  aiRender() {
+    if (VIEW !== 'ai') return;
+    const e = $('#ai_in'), v = e ? e.value : '';
+    renderView();
+    const n = $('#ai_in'); if (n) { n.value = v; if (!UI.ai.busy) n.focus(); }
+  },
+  async aiSend(text) {
+    const inp = $('#ai_in');
+    text = String(text || (inp ? inp.value : '')).trim();
+    if (!text || UI.ai.busy) return;
+    const cur = aiCur();
+    if (!cur.m) { toast(T('ai_need_model'), 'bad'); return; }
+    if (cur.p !== 'local' && !API) { toast(T('ai_need_server'), 'bad'); return; }
+    UI.ai.provider = cur.p; UI.ai.model = cur.m;
+    const q = {role: 'user', content: text};
+    UI.ai.msgs.push(q); UI.ai.busy = true;
+    if (inp) inp.value = '';
+    App.aiRender();
+    const msgs = UI.ai.msgs.filter(m => !m.err).map(m => ({role: m.role, content: m.content}));
+    try {
+      const sys = aiSystem();
+      const r = cur.p === 'local' ? await aiLocalCall(cur.m, sys, msgs) : await api('ai', {provider: cur.p, model: cur.m, system: sys, messages: msgs});
+      UI.ai.msgs.push({role: 'assistant', content: r.text || '—', label: `${AI_PROV[cur.p]} · ${r.model || cur.m}`, usage: r.usage});
+      if (r.usage) { UI.ai.tin += r.usage.in || 0; UI.ai.tout += r.usage.out || 0; }
+      if (S.aiStatus && cur.p !== 'local') S.aiStatus.used = (S.aiStatus.used || 0) + 1;
+    } catch (e) {
+      q.err = true;
+      UI.ai.msgs.push({role: 'assistant', err: true, content: aiErrText(e), label: `${AI_PROV[cur.p]} · ${cur.m}`});
+    }
+    UI.ai.busy = false;
+    App.aiRender();
+  },
+  aiLocal() {
+    const c = localAI();
+    modal({title: `${ICON.cpu} Local AI`, size: 'lg', body: `
+      <div class="banner">${ICON.info}<span>${esc(T('ai_local_note'))}</span></div>
+      ${fld('Endpoint (OpenAI-compatible)', `<input class="inp mono" id="la_url" value="${esc(c.url)}" placeholder="http://localhost:11434/v1">`, 1)}
+      <div class="inline" style="flex-wrap:wrap;margin:-4px 0 12px">${[['Ollama', 'http://localhost:11434/v1'], ['LM Studio', 'http://localhost:1234/v1'], ['llama.cpp', 'http://localhost:8080/v1'], ['Jan', 'http://localhost:1337/v1']].map(([n, u]) => `<button type="button" class="btn sm" onclick="document.getElementById('la_url').value='${u}'">${n}</button>`).join('')}</div>
+      <div class="row2">${fld(esc(T('ai_model')), `<input class="inp mono" id="la_model" list="la-models" value="${esc(c.model)}" placeholder="llama3.1:8b"><datalist id="la-models"></datalist>`, 1)}
+        ${fld('API key (optional)', `<input class="inp mono" id="la_key" type="password" value="${esc(c.key)}" autocomplete="off">`)}</div>
+      <div class="inline" style="flex-wrap:wrap"><button type="button" class="btn" onclick="App.aiLocalModels()">${ICON.search} ${esc(T('ai_list_models'))}</button><span id="la_status" class="small muted"></span></div>
+      <pre class="code-hint">OLLAMA_ORIGINS=${esc(location.origin)} ollama serve</pre>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: () => {
+        if (!requireFields(['la_url', 'la_model'])) return false;
+        try { localStorage.setItem('mbsst_local_ai', JSON.stringify({url: val('la_url'), model: val('la_model'), key: val('la_key')})); } catch (e) {}
+        UI.ai.provider = 'local'; UI.ai.model = val('la_model'); toast(T('saved')); setTimeout(() => App.aiRender(), 230);
+      }}]});
+  },
+  async aiLocalModels() {
+    const st = $('#la_status'), base = val('la_url').replace(/\/+$/, '');
+    st.textContent = '…';
+    try {
+      const res = await fetch(base + '/models', {headers: val('la_key') ? {Authorization: 'Bearer ' + val('la_key')} : {}});
+      const j = await res.json();
+      const ids = (j.data || j.models || []).map(x => x.id || x.name).filter(Boolean);
+      $('#la-models').innerHTML = ids.map(x => `<option value="${esc(x)}">`).join('');
+      if (!val('la_model') && ids[0]) $('#la_model').value = ids[0];
+      st.textContent = '✓ ' + ids.length + ' ' + T('ai_models_found') + (ids.length ? ': ' + ids.slice(0, 6).join(', ') : '');
+    } catch (e) { st.textContent = '✕ ' + T('ai_local_fail'); }
+  },
+  aiKey(p, remove) {
+    const v = remove ? '' : val('ak_' + p);
+    if (!remove && !v) return;
+    api('setAiKey', {provider: p, value: v}).then(j => { S.aiStatus = j.ai; renderView(); toast(T('saved') + ' · ' + AI_PROV[p]); }).catch(apiErr);
+  },
+  aiModels() {
+    const models = {};
+    AI_SERVER.forEach(p => models[p] = val('am_' + p).split(',').map(x => x.trim()).filter(Boolean));
+    S.settings.ai = {provider: val('am_def'), models};
+    save(); shareSet('ai'); toast(T('saved'));
   },
 
   /* print */
@@ -2230,13 +2748,15 @@ const App = {
   },
   printMember(id) {
     const m = S.data.members.find(x => x.id === id); if (!m) return;
-    const priv = ADMIN || (UI.self && UI.self.id === id);
+    const priv = ADMIN || (!!SELF && SELF.id === id);
     const kv = (k, v) => v ? `<b>${esc(T(k))}</b><span>${mm(String(v))}</span>` : '';
     printSheet(m.no || m.name, `${m.photo && safeImg(m.photo) ? `<img class="pphoto" src="${esc(safeImg(m.photo))}" alt="">` : ''}
       <h2 style="text-align:left">${mm(m.name)}</h2>${m.nameAlt ? `<div>${mm(m.nameAlt)}</div>` : ''}
       <div class="kv">${kv('mem_no', m.no)}${kv('role', role(m.role))}${kv('status', T('ms_' + m.status))}${kv('univ', m.univ)}${kv('faculty', m.faculty)}${kv('level', m.level ? T(m.level) : '')}
         ${kv('hometown', m.hometown)}${kv('ordained', m.ordained)}${kv('joined', m.joined)}${priv ? kv('phone', m.phone) + kv('email', m.email) + kv('contact', m.contact) + kv('birth', m.birth ? fmtDate(m.birth) : '') + kv('address', m.address) : ''}</div>
-      ${m.bio ? `<div style="clear:both;margin-top:10px"><b>${esc(T('bio'))}</b><div class="bio">${mm(m.bio)}</div></div>` : ''}`);
+      ${m.bio ? `<div style="clear:both;margin-top:10px"><b>${esc(T('bio'))}</b><div class="bio">${mm(m.bio)}</div></div>` : ''}
+      ${m.cv ? `<div style="clear:both;margin-top:10px"><b>${esc(T('cv'))}</b><div class="bio">${mm(m.cv)}</div></div>` : ''}
+      ${(m.works || []).length ? `<div style="clear:both;margin-top:10px"><b>${esc(T('works'))}</b><ol>${m.works.map(w => `<li>${mm(w.title || '')}${w.year ? ' (' + esc(w.year) + ')' : ''}${w.url ? ` — <span class="mono" style="font-size:9pt">${esc(w.url)}</span>` : ''}</li>`).join('')}</ol></div>` : ''}`);
   },
   editActivity(id) {
     const a = S.data.activities.find(x => x.id === id) || {date: todayISO(), title: {}};
@@ -2352,9 +2872,9 @@ S = load();
 if (API) S.data = {docs: [], requests: [], members: [], activities: [], history: [], log: []};
 window.LOGO_SVG = logoSVG();
 function route() {
-  const h = decodeURIComponent((location.hash || '#home').slice(1));
+  const h = decodeURIComponent((location.hash || '').slice(1)) || (can('member') ? 'home' : 'overview');
   if (h.startsWith('member/')) { VIEW = 'member'; UI.memberId = h.slice(7); }
-  else VIEW = VIEWS[h] && h !== 'member' ? h : 'home';
+  else VIEW = VIEWS[h] && h !== 'member' ? h : 'overview';
   if (VIEW !== 'issue') UI.issueType = null;
   renderView();
   $('#main').focus({preventScroll: true});
