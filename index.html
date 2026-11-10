@@ -97,6 +97,15 @@ main{padding:28px clamp(16px,3vw,40px) 60px;min-width:0;outline:none}
 .st.void,.st.returned{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
 .st.submitted{color:var(--info);background:color-mix(in srgb,var(--info) 12%,transparent)}
 .st.review{color:var(--accent);background:var(--tint-2)}
+.st.paid{color:var(--ok);background:color-mix(in srgb,var(--ok) 22%,transparent)}
+.sec-h{font-weight:700;font-size:.95rem;margin:18px 0 10px;padding:7px 12px;border-radius:10px;background:var(--tint-2);color:var(--primary)}
+.chk-row{display:flex;flex-wrap:wrap;gap:6px 16px;padding:6px 0}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;cursor:pointer}
+.budget-pv{font-size:.85rem;padding:8px 12px;border-radius:10px;background:var(--surface-2);margin-top:6px}
+.budget-pv:empty{display:none}
+.budget-pv.bad{color:var(--bad)}
+.seg.wrap{flex-wrap:wrap;border-radius:18px}
+dl.kv .kv-sec{grid-column:1/-1;font-weight:700;color:var(--primary);border-bottom:1px solid var(--line);padding-top:10px}
 .inp{width:100%;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface);transition:border .2s,box-shadow .2s}
 .inp:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 16%,transparent)}
 textarea.inp{resize:vertical}
@@ -357,6 +366,14 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;word-break:break-word}
 .ps .sign{margin:16mm 0 0 52%;text-align:center}
 .ps .void{position:absolute;right:0;top:0;border:3px solid #b91c1c;color:#b91c1c;font-weight:800;font-size:18pt;padding:2px 12px;transform:rotate(-8deg)}
 .ps .pphoto{width:34mm;height:34mm;object-fit:cover;border-radius:50%;border:2px solid #ddd;float:right;margin:0 0 8px 12px}
+.ps .ptitle{text-align:center;margin:2px 0 8px;line-height:1.45}
+.ps .ptitle>.mnw{font-size:14pt;font-weight:700}
+.ps .pt{font-size:9.5pt;margin-bottom:6px}
+.ps .pt td{width:25%}
+.ps .pt.sg td{width:33.3%;line-height:2}
+.ps .pt th.sec{text-align:left;font-weight:700}
+.ps .pt small{color:#555;font-size:8pt}
+.ps tr{break-inside:avoid}
 .ps .pf{position:fixed;bottom:0;left:0;right:0;font-size:8.5pt;color:#666;display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:4px}
 @media print{
   @page{size:A4;margin:15mm 17mm 18mm}
@@ -631,7 +648,75 @@ const STR_ROWS = [
  ['approve','သ္ဂုတ်သွာတ်','อนุมัติและออกเลข','Approve & issue',1],
  ['return_req','','ส่งกลับแก้ไข','Return for edits',''],
  ['comment','','ความเห็น','Comment',''],
- ['req_note','','เมื่ออนุมัติ ระบบจะออกเลข PRJ หรือ BUD ให้อัตโนมัติและผูกกับรหัสโครงการ','On approval the system issues a PRJ or BUD number linked to the project code',''],
+ ['req_note','','เมื่ออนุมัติ ระบบจะออกเลข PRJ, BUD หรือ PAY ให้อัตโนมัติและผูกกับรหัสโครงการ','On approval the system issues a PRJ, BUD or PAY number linked to the project code',''],
+ ['req_pay','တၞးလိက်ပ္တိုန်စရင် ပ္တိတ်သြန်ဘဏ္ဍာ','ขอเบิกจ่ายเงิน','Payment request',1],
+ ['pay_form','တၞးလိက်ပ္တိုန်စရင် ပ္တိတ်သြန်ဘဏ္ဍာ','แบบขอเบิกจ่ายเงิน','Payment Request Form',1],
+ ['pay_sub','တၞးလိက်စပ်ကဵုပရေင်ကောပ်ကာဲဘဏ္ဍာသြန် ပ္ဍဲအပ္ဍဲဂကောံ · ဂကူသြန် – ၜါတ်သေံ (THB)','แบบฟอร์มการบริหารเงินภายในชมรม · สกุลเงินบาท (THB)','Form for managing the Society\'s funds · Currency: Thai baht (THB)',1],
+ ['pay_no','ဂၞန်တၞးပ္တိုန်စရင်','เลขที่คำขอเบิก','Request no.',1],
+ ['pay_reqdate','စၟတ်တ္ၚဲပ္တိုန်စရင်','วันที่ยื่นคำขอ','Request date',1],
+ ['pay_need','စၟတ်တ္ၚဲ သွက်သ္ဂောံသ္ပဒတန်သြန်ဘဏ္ဍာ','วันที่ต้องการให้อนุมัติเงิน','Approval needed by',1],
+ ['pay_pri','ကဆံင်ကဵုက္ဍိုပ်','ความเร่งด่วน','Priority',1],
+ ['pri_normal','သာမည','ปกติ','Normal',1],
+ ['pri_urgent','ဗွဲမပြဟ်ပြေဟ်','ด่วน','Urgent',1],
+ ['pay_s1','၁။ တင်နင်ညးပ္တိုန်သြန် ကေုာံ ညးဒုင်တဲသြန်ဂမၠိုင်','๑. ข้อมูลผู้ขอเบิกและผู้รับเงิน','1. Requester and payee',1],
+ ['pay_requester','ယၟုညးပ္တိုန်စရင်သြန်','ชื่อผู้ขอเบิก','Requester',1],
+ ['pay_dept','တာလျိုင် / ဌာန','ตำแหน่ง / ฝ่าย','Position / department',1],
+ ['pay_payee','ယၟုညးမဒုင်တဲသြန်','ชื่อผู้รับเงิน','Payee',1],
+ ['pay_phone','ဂၞန်ဖုင်ဆက်စၠောံ (သေံ)','เบอร์โทรศัพท์ (ไทย)','Phone (Thailand)',1],
+ ['pay_sup','သွာင်ညးချဳဒရာင်ကၠောန် (တၟေင်နွံမ္ဂး)','ผู้ควบคุมงาน (ถ้ามี)','Supervisor (if any)',1],
+ ['pay_contact','ပရေင်ဆက်ဆောံ','ช่องทางติดต่อ','Contact',1],
+ ['pay_s2','၂။ သွက်သ္ဂောံပ္တိတ်ကဵုသြန် လစှ်ေလစှ်ေ','๒. รายละเอียดการเบิกจ่าย','2. Payment details',1],
+ ['pay_purpose','တင်ရန်တၟံ သုင်စောဲသြန် / တင်ဒးထမံက်ထ္ၜး','วัตถุประสงค์ / รายการที่ขอเบิก','Purpose / item to be paid',1],
+ ['pay_amount','ဗၞတ်ဗ္ၜတ်သြန် မပ္တိုန်စရင်','จำนวนเงินที่ขอเบิก (บาท)','Amount requested (THB)',1],
+ ['pay_cat','ဂကူသြန်မသုင်စောဲ','หมวดค่าใช้จ่าย','Expense category',1],
+ ['cat_edu','ပရေင်ပညာ','การศึกษา','Education',1],
+ ['cat_health','ဂိလာန','รักษาพยาบาล','Medical',1],
+ ['cat_other','ကေင်ကာတၞဟ်တၞဟ်','อื่น ๆ','Other',1],
+ ['pay_method','နဲကဲပ္တိတ်ကဵုသြန်ဘဏ္ဍာ','วิธีจ่ายเงิน','Payment method',1],
+ ['pm_bank','Bank','โอนเข้าบัญชี (Bank)','Bank transfer',1],
+ ['pm_cash','Cash','เงินสด (Cash)','Cash',1],
+ ['pay_budget','က္ဍိုပ်လိက် Budget / ဂကူ Budget','หมวดงบ / ประเภทงบ','Budget line / type',1],
+ ['pay_voucher','Voucher / ဂၞန်ဗံက်ချာ','เลขที่ Voucher / ใบสำคัญ','Voucher no.',1],
+ ['pay_plan','လၟေင်ကမၠောန် / Planning','โครงการ / แผนงาน','Project / plan',1],
+ ['pay_type','ဂကူမပ္တိတ်လဝ်ကဵုသြန်','ลักษณะการจ่าย','Payment type',1],
+ ['pt_full','ဗပေင်(ဟတုဲ)','จ่ายเต็มจำนวน','Full payment',1],
+ ['pt_adv','ပ္တိတ်ကၠာ','เบิกล่วงหน้า','Advance',1],
+ ['pt_reimb','ကလေင်ပ္တိတ်ကဵုပၠန်','เบิกชดใช้ (สำรองจ่ายไปแล้ว)','Reimbursement',1],
+ ['pay_annual','ဒုင်လဝ်သ္ဇိုင်ပါ်ပရအ်သြန်ဘဏ္ဍာ အပ္ဍဲသၞာံ (၂၀၂၆/၂၀၂၇)','งบที่ได้รับจัดสรร ปี ๒๐๒๖/๒๐๒๗','Allocated budget 2026/2027',1],
+ ['pay_s3','၃။ ပွမသ္ပဒတန်စၟဳစၟတ် Budget (ညးတာလျိုင်ဘဏ္ဍာဂါရိကတအ် ဗပေင်ညိ)','๓. ตรวจสอบงบประมาณ (เหรัญญิกเป็นผู้กรอก)','3. Budget check (completed by the treasurer)',1],
+ ['b_approved','Budget သ္ပဒတန်','งบที่อนุมัติ','Approved budget',1],
+ ['b_before','ကိုပ်နူသ္ပဒ္တန်သြန်ပ္တိုန် သြန်မသှ်ေ','คงเหลือก่อนเบิกครั้งนี้','Remaining before this request',1],
+ ['b_this','လၟိဟ်မပ္တိုန်သြန်လၟုဟ်ဏအ်','ยอดขอเบิกครั้งนี้','This request',1],
+ ['b_after','ကဵုလဝ်သြန်ပ္တိုန်လဝ်ဝွံတုဲ သြန်မသှ်ေ','คงเหลือหลังเบิก','Remaining after',1],
+ ['over_budget','','เกินงบหมวดนี้','Over this category\'s budget',''],
+ ['b_check','တင်စၟဳစၟတ်Budget','ผลตรวจงบ','Budget check',1],
+ ['bc_in','ပ္ဍဲအပ္ဍဲBudget မကဵုလဝ်အခေါင်','อยู่ในงบที่อนุมัติ','Within approved budget',1],
+ ['bc_move','သွက်ဂွံပြံင်သၠာဲ ဂကူBudget / သ္ဒးလဝ်အခေါင်နူကုကမ္မတဳ','ต้องโอนหมวดงบ / ต้องให้คณะกรรมการอนุมัติ','Needs reallocation / committee approval',1],
+ ['bc_out','ဟွံလုပ်လၟိဟ် ပ္ဍဲBudget','ไม่อยู่ในงบ','Not in budget',1],
+ ['pay_s4','၄။ ဟိုတ်ခရိတ်မသုင်စောဲ ကေုာံ တၞးလိက်ဗစိုပ်ဂမၠိုင်','๔. เหตุผลการใช้จ่ายและเอกสารประกอบ','4. Justification and supporting documents',1],
+ ['pay_reason','ဟိုတ်တမ် ဂွံနွံပၟိက်ကဵု ခရိတ်သုင်စောဲဏံ / ဂုဏ်ဖဵုမရန်လဝ် သွက်MBSST (တိုက်ရိုက်)','เหตุผลความจำเป็น / ประโยชน์ที่ MBSST ได้รับโดยตรง','Reason / direct benefit to MBSST',1],
+ ['pay_docs','တၞးလိက်ဗစိုပ်ပါကၠုင်ဂမၠိုင်','เอกสารประกอบที่แนบ','Supporting documents',1],
+ ['ds_voucher','Voucher','Voucher / ใบสำคัญ','Voucher',1],
+ ['ds_bank','Bank Receipts','หลักฐานการโอน (Bank Receipts)','Bank receipts',1],
+ ['ds_quote','တင်နင်တၞးလိက်နူဗာဏ်','ใบเสนอราคา / ข้อมูลจากร้าน','Quotation from vendor',1],
+ ['ds_minutes','တင်သ္ပလဝ်ဒတန် / စၟတ်သမ္တီနူကောံဓရီု','มติอนุมัติ / รายงานการประชุม','Approval / meeting minutes',1],
+ ['ds_other','တၞဟ်သ္အာင်','อื่น ๆ','Other',1],
+ ['pay_s5','၅။ စၟဳစၟတ် ကေုာံ သ္ပဒတန်','๕. ตรวจสอบและอนุมัติ','5. Review and approval',1],
+ ['s_req','ညးမပ္တိုန်ထ္ၜးသြန် (ကေတ်သြန်)','ผู้ขอเบิก (ผู้รับเงิน)','Requester (recipient)',1],
+ ['s_chk','ညးစၟဳစၟတ် - ဘဏ္ဍာဂါရိက (မွဲမွဲ)','ผู้ตรวจสอบ – เหรัญญิก','Checked by – Treasurer',1],
+ ['s_apv','ညးမသ္ပဒတန် (ပါ်ပါဲ) – ဥက္ကဋ္ဌ','ผู้อนุมัติ – ประธาน','Approved by – President',1],
+ ['sg_name','ယၟု','ชื่อ','Name',1],
+ ['sg_sign','စၟတ်တဲ','ลายมือชื่อ','Signature',1],
+ ['sg_date','စၟတ်တ္ၚဲ','วันที่','Date',1],
+ ['pay_s6','၆။ ပွမရေင်တၠုင်ကဵုသြန် ကေုာံ ပွမဒတန် ဟိုတ်မက္လိဂွံလဝ်သြန်','๖. การจ่ายเงินและหลักฐานการรับเงิน','6. Payment and proof of receipt',1],
+ ['s_payer','ညးမကဵုသြန် – ဘဏ္ဍာဂါရိက','ผู้จ่ายเงิน – เหรัญญิก','Paid by – Treasurer',1],
+ ['s_paid','မကဵုလဝ်သြန်လစှ်ေလစှ်ေ','รายละเอียดการจ่าย','Payment details',1],
+ ['s_recv','ညးမဒုင်လဝ်တဲသြန်','ผู้รับเงิน','Received by',1],
+ ['paid_date','တ္ၚဲမပ္တိတ်ကဵုလဝ်သြန်','วันที่จ่ายเงิน','Payment date',1],
+ ['paid_ref','ဂၞန်စၟတ်သမ္တီပြင်လဝ်သြန်','เลขที่หลักฐานการจ่าย','Payment reference no.',1],
+ ['paid_amt','ဗၞတ်ဗ္ၜတ်ပ္တိတ်လဝ်ကဵုသြန်','จำนวนเงินที่จ่าย (บาท)','Amount paid (THB)',1],
+ ['rec_pay','','บันทึกการจ่ายเงิน','Record payment',''],
+ ['st_paid','','จ่ายเงินแล้ว','Paid',''],
  ['mem_add','','เพิ่มสมาชิก','Add member',''],
  ['mem_no','စၟတ်ဂၞန်','เลขสมาชิก','Member no.',1],
  ['name','ယၟု','ชื่อ','Name',1],
@@ -790,6 +875,21 @@ const DEFAULT_TYPES = [
   {code:'RPT',d:3,g:'fin',p:1,on:1,c:'#4f46e5',signer:'secretary',n:{mnw:'လိက်ပတိုန်ထ္ၜး',th:'รายงาน',en:'Report'},s:{th:'รายงานผลโครงการ รายงานการเงิน',en:'Project and financial reports'},v:0},
   {code:'RCV',d:3,g:'in',p:0,on:1,c:'#475569',signer:'office',n:{mnw:'လိက်လုပ်',th:'หนังสือรับ',en:'Incoming letter'},s:{th:'ลงรับหนังสือจากภายนอก (ธรรมนูญข้อ ๒๔)',en:'Register incoming mail (Art. 24)'},v:1}
 ];
+const PAY_FY = '2026/2027';
+const PAY_CATS = [{k:'edu',a:129219,line:'ပရေင်ပညာ'},{k:'health',a:36920,line:'ပရေင်ထတ်ယုက်'},{k:'other',a:18460,line:'ကေင်ကာတၞဟ်ဟ်'}];
+const PAY_TYPES = ['full','adv','reimb'];
+const PAY_DOCS = ['voucher','bank','quote','minutes','other'];
+const REQ_LABEL = {PRJ:'req_prj',BUD:'req_bud',PAY:'req_pay'};
+const payOf = r => (r && r.kind === 'PAY' && r.items && !Array.isArray(r.items)) ? r.items : {};
+function payBudget(r) {
+  const p = payOf(r), c = PAY_CATS.find(x => x.k === p.cat);
+  if (!c) return null;
+  const fy = p.fy || PAY_FY;
+  const used = S.data.requests.filter(x => x.kind === 'PAY' && x.id !== r.id && x.status === 'approved' && payOf(x).cat === c.k && (payOf(x).fy || PAY_FY) === fy)
+    .reduce((t, x) => t + (Number(x.amount) || 0), 0);
+  const amt = Number(r.amount) || 0, before = c.a - used, after = before - amt;
+  return {alloc: c.a, before, amt, after, check: after >= 0 ? 'in' : 'move'};
+}
 const PRESETS = [
   {n:'Logo red',p:'#b3191f',a:'#d9a521'},{n:'Logo blue',p:'#2f5d9e',a:'#d9a521'},
   {n:'Robe',p:'#7a2e1f',a:'#c98a1b'},{n:'Saffron',p:'#b45309',a:'#7a2e1f'},{n:'Mon red',p:'#9f1d20',a:'#d4a017'},
@@ -827,7 +927,8 @@ function seed() {
   const requests = [
     {id:uid(),kind:'PRJ',title:'အစဳအဇန်ကလအ်သင်ရေင်သ္ကအ် (MBSST)',proposer:'ဟိတဓရ',objective:'02',program:1,start:'2026-01-03',end:'2026-01-03',code:'02-01-26-030126',amount:0,items:[],desc:'',files:[],links:[],status:'approved',docNo:'MBSST-PRJ 001/2026',history:[{at:'2026-01-02',st:'submitted'},{at:'2026-01-03',st:'approved'}],sample:true},
     {id:uid(),kind:'PRJ',title:'โครงการอบรมการอ่านเขียนภาษามอญ',proposer:'ประชาสัมพันธ์',objective:'02',program:2,start:'2026-12-05',end:'2026-12-06',code:'02-02-26-051226',amount:12000,items:[],desc:'อบรม ๒ วัน สำหรับสามเณร',files:[{name:'proposal.pdf',size:182000}],links:[],status:'review',history:[{at:'2026-11-01',st:'submitted'},{at:'2026-11-03',st:'review'}],sample:true},
-    {id:uid(),kind:'BUD',title:'ค่าเอกสารและอาหารว่าง โครงการอบรมภาษามอญ',proposer:'เหรัญญิก',objective:'02',program:2,start:'2026-12-05',code:'02-02-26-051226',amount:8500,items:[{name:'เอกสารประกอบ',qty:50,price:50},{name:'อาหารว่าง',qty:100,price:60}],desc:'',files:[],links:[],status:'submitted',history:[{at:'2026-11-06',st:'submitted'}],sample:true}
+    {id:uid(),kind:'BUD',title:'ค่าเอกสารและอาหารว่าง โครงการอบรมภาษามอญ',proposer:'เหรัญญิก',objective:'02',program:2,start:'2026-12-05',code:'02-02-26-051226',amount:8500,items:[{name:'เอกสารประกอบ',qty:50,price:50},{name:'อาหารว่าง',qty:100,price:60}],desc:'',files:[],links:[],status:'submitted',history:[{at:'2026-11-06',st:'submitted'}],sample:true},
+    {id:uid(),kind:'PAY',title:'ค่าอาหารว่าง ประชุมคณะกรรมการ',proposer:'เหรัญญิก',objective:'',program:'',start:'',end:'',code:'',amount:1200,items:{fy:'2026/2027',dept:'เหรัญญิก',payee:'ร้านค้าในวัด',phone:'',sup:'',contact:'',cat:'other',method:'cash',budget:'',voucher:'',ptype:'reimb',need:'2026-11-15',pri:'normal',docs:['voucher'],docOther:'',paid:null},desc:'ประชุมคณะกรรมการประจำเดือน',files:[],links:[],status:'submitted',history:[{at:'2026-11-08',st:'submitted'}],sample:true}
   ];
   const mem = (name, role, o = {}) => ({id: uid(), no: '', name, nameAlt: '', role, status: 'active', joined: '', univ: '', contact: '', note: 'จากรายชื่อในธรรมนูญ ๒๐๒๕', ...o});
   const members = [
@@ -1068,6 +1169,33 @@ const readLinks = id => $$('#' + id + ' .link-row').map(r => ({label: r.querySel
 const linksHTML = ls => (ls || []).length ? ls.map(l => `<div><a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${ICON.link.replace('<svg', '<svg width="14" height="14"')} ${esc(l.label || l.url)}</a></div>`).join('') : '—';
 const tri = (pfx, o = {}) => `<div class="row3">${['mnw','th','en'].map(l => fld(LANG_LABEL[l], `<input class="inp ${l === 'mnw' ? 'mnw' : ''}" id="${pfx}_${l}" value="${esc(o[l] || '')}">`)).join('')}</div>`;
 const readTri = pfx => ({mnw: val(pfx + '_mnw'), th: val(pfx + '_th'), en: val(pfx + '_en')});
+const radios = (name, keys, pre, cur) => `<div class="chk-row">${keys.map(k => `<label class="chk"><input type="radio" name="${name}" value="${k}" ${k === cur ? 'checked' : ''}> ${mm(T(pre + k))}</label>`).join('')}</div>`;
+function payFormHTML(prjCodes) {
+  return `
+    <div class="banner">${ICON.info}<span>${mm(T('pay_sub'))}</span></div>
+    <div class="row2">${fld(mm(T('pay_need')), '<input class="inp" type="date" id="p_need">')}
+      <div class="fld"><span>${mm(T('pay_pri'))}</span>${radios('p_pri', ['normal', 'urgent'], 'pri_', 'normal')}</div></div>
+    <div class="sec-h">${mm(T('pay_s1'))}</div>
+    <div class="row2">${fld(mm(T('pay_requester')), '<input class="inp" id="r_prop">', 1)}${fld(mm(T('pay_dept')), '<input class="inp" id="p_dept">')}</div>
+    <div class="row2">${fld(mm(T('pay_payee')), '<input class="inp" id="p_payee">', 1)}${fld(mm(T('pay_phone')), '<input class="inp" type="tel" id="p_phone">')}</div>
+    <div class="row2">${fld(mm(T('pay_sup')), '<input class="inp" id="p_sup">')}${fld(mm(T('pay_contact')), '<input class="inp" id="p_contact" placeholder="LINE / Facebook / e-mail">')}</div>
+    <div class="sec-h">${mm(T('pay_s2'))}</div>
+    ${fld(mm(T('pay_purpose')), '<input class="inp" id="r_title">', 1)}
+    <div class="row2">${fld(mm(T('pay_amount')), '<input class="inp" type="number" min="0" step="0.01" id="r_amount" oninput="App.payCalc()">', 1)}
+      <div class="fld"><span>${mm(T('pay_method'))}</span>${radios('p_method', ['bank', 'cash'], 'pm_', 'bank')}</div></div>
+    <div class="fld"><span>${mm(T('pay_cat'))}</span><div onchange="App.payCalc()">${radios('p_cat', PAY_CATS.map(c => c.k), 'cat_', 'edu')}</div><div class="budget-pv" id="p_left"></div></div>
+    <div class="row2">${fld(mm(T('pay_budget')), '<input class="inp" id="p_budget">')}${fld(mm(T('pay_voucher')), '<input class="inp mono" id="p_voucher">')}</div>
+    <div class="row2">${fld(mm(T('pay_plan')), `<select class="inp" id="r_rel"><option value="">—</option>${prjCodes.map(c => `<option>${esc(c)}</option>`).join('')}</select>`)}
+      <div class="fld"><span>${mm(T('pay_type'))}</span>${radios('p_type', PAY_TYPES, 'pt_', 'full')}</div></div>
+    <div class="sec-h">${mm(T('pay_s4'))}</div>
+    ${fld(mm(T('pay_reason')), '<textarea class="inp" id="r_desc" rows="3"></textarea>', 1)}
+    <div class="fld"><span>${mm(T('pay_docs'))}</span><div class="chk-row">${PAY_DOCS.map(k => `<label class="chk"><input type="checkbox" name="p_docs" value="${k}"> ${mm(T('ds_' + k))}</label>`).join('')}</div>
+      <input class="inp" id="p_docother" placeholder="${esc(T('ds_other'))} …"></div>
+    <div class="fld"><span>${esc(T('attachments'))}</span>
+      <div class="drop" id="r_drop" onclick="$('#r_file').click()">${ICON.upload}<div>${esc(T('drop_hint'))}</div><input type="file" id="r_file" multiple hidden></div>
+      <div class="files" id="r_files"></div><span class="small muted">${esc(T('drop_note'))}</span></div>
+    <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('r_links')}</div>`;
+}
 function requireFields(ids) {
   let ok = true;
   ids.forEach(id => { const e = document.getElementById(id); if (!e) return; const f = e.closest('.fld'); if (!e.value.trim()) { ok = false; f && f.classList.add('err'); setTimeout(() => f && f.classList.remove('err'), 900); } });
@@ -1267,6 +1395,7 @@ function viewRequests() {
   const order = ['submitted', 'review', 'approved'];
   return `<div class="view">
     <div class="page-head"><h2>${ICON.folder.replace('<svg', '<svg width="26"')} ${mm(T('nav_requests'))}</h2><span class="spacer"></span>
+      <button class="btn" onclick="App.newRequest('PAY')">${ICON.plus} ${esc(T('req_pay'))}</button>
       <button class="btn" onclick="App.newRequest('BUD')">${ICON.plus} ${esc(T('req_bud'))}</button>
       <button class="btn primary" onclick="App.newRequest('PRJ')">${ICON.upload} ${esc(T('req_prj'))}</button></div>
     <div class="banner">${ICON.info}<span>${esc(T('req_note'))}</span></div>
@@ -1274,7 +1403,7 @@ function viewRequests() {
     ${list.length ? `<div class="req-grid stagger">${list.map((r, i) => {
       const idx = order.indexOf(r.status);
       return `<div class="card rcard" style="--i:${i}" onclick="App.openRequest('${r.id}')">
-        <div class="top">${badge(r.kind)}${stChip(r.status)}</div>
+        <div class="top">${badge(r.kind)}<span>${payOf(r).paid ? stChip('paid') + ' ' : ''}${stChip(r.status)}</span></div>
         <div class="ttl">${mm(r.title)}</div>
         <div class="small muted mono">${esc(r.code || '—')}${r.docNo ? ' · ' + esc(r.docNo) : ''}</div>
         <div class="small">${esc(T('amount'))}: <b>${money(r.amount)}</b> · ${esc(T('proposer'))}: ${mm(r.proposer)}</div>
@@ -1712,8 +1841,8 @@ const App = {
     UI.files = [];
     const y = curYear();
     const prjCodes = [...new Set(S.data.requests.filter(r => r.kind === 'PRJ').map(r => r.code))];
-    const body = `
-      <div class="seg" style="margin-bottom:16px">${['PRJ', 'BUD'].map(k => `<button class="${kind === k ? 'on' : ''}" onclick="App.switchReq('${k}')">${k} · ${esc(T(k === 'PRJ' ? 'req_prj' : 'req_bud'))}</button>`).join('')}</div>
+    const seg = `<div class="seg wrap" style="margin-bottom:16px">${['PRJ', 'BUD', 'PAY'].map(k => `<button class="${kind === k ? 'on' : ''}" onclick="App.switchReq('${k}')">${k} · ${esc(T(REQ_LABEL[k]))}</button>`).join('')}</div>`;
+    const body = seg + (kind === 'PAY' ? payFormHTML(prjCodes) : `
       ${fld(T('subject'), `<input class="inp" id="r_title" placeholder="${esc(T('subject_ph'))}">`, 1)}
       <div class="row2">${fld(T('proposer'), '<input class="inp" id="r_prop">', 1)}${fld(T('amount'), `<input class="inp" type="number" min="0" id="r_amount" ${kind === 'BUD' ? 'readonly' : ''}>`)}</div>
       ${kind === 'PRJ' ? `
@@ -1729,11 +1858,18 @@ const App = {
       <div class="fld"><span>${esc(T('attachments'))}</span>
         <div class="drop" id="r_drop" onclick="$('#r_file').click()">${ICON.upload}<div>${esc(T('drop_hint'))}</div><input type="file" id="r_file" multiple hidden></div>
         <div class="files" id="r_files"></div><span class="small muted">${esc(T('drop_note'))}</span></div>
-      <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('r_links')}</div>`;
+      <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('r_links')}</div>`);
     App._reqModal = modal({title: `${ICON.upload.replace('<svg', '<svg width="20"')} ${esc(T('req_new'))}`, size: 'lg', body,
       actions: [{label: esc(T('cancel'))}, {label: `${ICON.upload} ${esc(T('submit'))}`, cls: 'primary', on: (_, close, btn) => App.submitReq(kind, btn, close)}]});
     App.bindDrop();
-    if (kind === 'PRJ') App.reqCode(); else App.addItem();
+    if (kind === 'PRJ') App.reqCode(); else if (kind === 'BUD') App.addItem(); else App.payCalc();
+  },
+  payCalc() {
+    const e = $('#p_left'); if (!e) return;
+    const b = payBudget({id: '', kind: 'PAY', amount: +val('r_amount') || 0, items: {cat: ($('input[name=p_cat]:checked') || {}).value, fy: PAY_FY}});
+    if (!b) { e.textContent = ''; return; }
+    e.classList.toggle('bad', b.after < 0);
+    e.innerHTML = `${esc(T('b_approved'))} <b>${money(b.alloc)}</b> · ${esc(T('b_before'))} <b>${money(b.before)}</b> · ${esc(T(b.after < 0 ? 'over_budget' : 'b_after'))} <b>${money(b.after)}</b>`;
   },
   switchReq(k) { if (App._reqModal) App._reqModal.close(); setTimeout(() => App.newRequest(k), 210); },
   reqCode() { const o = ($('input[name=r_obj]:checked') || {}).value || '02'; const c = projCode(o, +val('r_prog') || 1, val('r_start')); const e = $('#r_code'); if (e) e.textContent = c || '—'; },
@@ -1758,13 +1894,19 @@ const App = {
   },
   rmFile(i) { UI.files.splice(i, 1); App.drawFiles(); },
   submitReq(kind, btn, close) {
-    if (!requireFields(kind === 'PRJ' ? ['r_title', 'r_prop', 'r_start'] : ['r_title', 'r_prop', 'r_rel'])) return false;
+    if (!requireFields(kind === 'PRJ' ? ['r_title', 'r_prop', 'r_start'] : kind === 'BUD' ? ['r_title', 'r_prop', 'r_rel'] : ['r_prop', 'p_payee', 'r_title', 'r_amount', 'r_desc'])) return false;
     const r = {id: uid(), kind, title: val('r_title'), proposer: val('r_prop'), amount: +val('r_amount') || 0, desc: val('r_desc'), files: [], links: readLinks('r_links'),
       status: 'submitted', history: [{at: todayISO(), st: 'submitted'}], items: []};
     if (kind === 'PRJ') Object.assign(r, {objective: ($('input[name=r_obj]:checked') || {}).value, program: +val('r_prog') || 1, start: val('r_start'), end: val('r_end'), code: $('#r_code').textContent});
-    else {
+    else if (kind === 'BUD') {
       r.code = val('r_rel'); r.objective = r.code.slice(0, 2);
       r.items = $$('#r_items tr').map(tr => ({name: tr.querySelector('[data-k=name]').value.trim(), qty: +tr.querySelector('[data-k=qty]').value || 0, price: +tr.querySelector('[data-k=price]').value || 0})).filter(i => i.name);
+    } else {
+      const ck = n => ($(`input[name=${n}]:checked`) || {}).value || '';
+      r.code = val('r_rel'); r.objective = r.code.slice(0, 2);
+      r.items = {fy: PAY_FY, dept: val('p_dept'), payee: val('p_payee'), phone: val('p_phone'), sup: val('p_sup'), contact: val('p_contact'),
+        cat: ck('p_cat'), method: ck('p_method'), budget: val('p_budget'), voucher: val('p_voucher'), ptype: ck('p_type'), need: val('p_need'), pri: ck('p_pri'),
+        docs: $$('input[name=p_docs]:checked').map(x => x.value), docOther: val('p_docother'), paid: null};
     }
     const b = btn.getBoundingClientRect();
     btn.classList.add('loading');
@@ -1791,6 +1933,7 @@ const App = {
   },
   openRequest(id) {
     const r = S.data.requests.find(x => x.id === id); if (!r) return;
+    if (r.kind === 'PAY') return App.openPay(r);
     const obj = OBJECTIVES.find(o => o.c === r.objective);
     const acts = [];
     if (ADMIN && r.status === 'submitted') acts.push({label: esc(T('start_review')), on: () => App.reqStep(r, 'review')});
@@ -1815,6 +1958,48 @@ const App = {
         <dt>${esc(T('status'))}</dt><dd><div class="timeline-mini">${r.history.map(h => `<div><b>${esc(T('st_' + h.st))}</b> · ${fmtDate(h.at)}${h.c ? ` — ${esc(h.c)}` : ''}</div>`).join('')}</div></dd>
       </dl>`, actions: acts});
   },
+  openPay(r) {
+    const p = payOf(r), b = payBudget(r), paid = p.paid;
+    const acts = [{label: `${ICON.print} ${esc(T('print'))}`, on: () => { App.printRequest(r.id); return false; }}];
+    if (ADMIN && r.status === 'submitted') acts.push({label: esc(T('start_review')), on: () => App.reqStep(r, 'review')});
+    if (ADMIN && (r.status === 'submitted' || r.status === 'review')) {
+      acts.push({label: esc(T('return_req')), cls: 'danger', on: () => setTimeout(() => App.returnReq(r), 220)});
+      acts.push({label: `${ICON.stamp} ${mm(T('approve'))}`, cls: 'primary', on: (_, __, btn) => App.approveReq(r, btn)});
+    }
+    if (ADMIN && r.status === 'approved' && !paid) acts.push({label: `${ICON.check} ${esc(T('rec_pay'))}`, cls: 'primary', on: () => setTimeout(() => App.recordPay(r), 220)});
+    const dd = (k, v) => v ? `<dt>${mm(T(k))}</dt><dd>${v}</dd>` : '';
+    const sec = k => `<dt class="kv-sec">${mm(T(k))}</dt>`;
+    const docs = (p.docs || []).map(k => mm(T('ds_' + k)) + (k === 'other' && p.docOther ? ': ' + mm(p.docOther) : '')).join(' · ');
+    modal({title: `${badge('PAY')} ${mm(r.title)}`, size: 'lg', body: `
+      ${r.sample ? `<div class="banner">${ICON.info}<span>${esc(T('sample'))}</span></div>` : ''}
+      <dl class="kv">
+        <dt>${esc(T('status'))}</dt><dd>${stChip(r.status)}${paid ? ' ' + stChip('paid') : ''}${r.docNo ? ` · <a href="javascript:void 0" onclick="App.openByNo('${esc(r.docNo)}')" class="mono">${esc(r.docNo)}</a>` : ''}</dd>
+        ${dd('pay_reqdate', fmtDate((r.history[0] || {}).at))}${dd('pay_need', p.need ? fmtDate(p.need) : '')}${dd('pay_pri', p.pri ? mm(T('pri_' + p.pri)) : '')}
+        ${sec('pay_s1')}${dd('pay_requester', mm(r.proposer))}${dd('pay_dept', mm(p.dept))}${dd('pay_payee', mm(p.payee))}${dd('pay_phone', esc(p.phone))}${dd('pay_sup', mm(p.sup))}${dd('pay_contact', esc(p.contact))}
+        ${sec('pay_s2')}${dd('pay_purpose', mm(r.title))}${dd('pay_amount', `<b>${money(r.amount)}</b>`)}${dd('pay_cat', p.cat ? mm(T('cat_' + p.cat)) : '')}${dd('pay_method', p.method ? esc(T('pm_' + p.method)) : '')}
+        ${dd('pay_budget', mm(p.budget))}${dd('pay_voucher', esc(p.voucher))}${dd('pay_plan', r.code ? `<span class="mono">${esc(r.code)}</span>` : '')}${dd('pay_type', p.ptype ? mm(T('pt_' + p.ptype)) : '')}
+        ${b ? `${sec('pay_s3')}${dd('b_approved', money(b.alloc))}${dd('b_before', money(b.before))}${dd('b_this', money(b.amt))}
+          <dt>${mm(T('b_after'))}</dt><dd><b style="${b.after < 0 ? 'color:var(--bad)' : ''}">${money(b.after)}</b> · ${mm(T('bc_' + b.check))}</dd>` : ''}
+        ${sec('pay_s4')}${dd('pay_reason', mm(r.desc))}${dd('pay_docs', docs)}
+        <dt>${esc(T('attachments'))}</dt><dd>${r.files.length ? r.files.map(f => `<div>📎 ${f.url ? `<a href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener">${esc(f.name)}</a>` : esc(f.name)}</div>`).join('') : '—'}</dd>
+        ${r.links && r.links.length ? `<dt>${esc(T('links'))}</dt><dd>${linksHTML(r.links)}</dd>` : ''}
+        ${paid ? `${sec('pay_s6')}${dd('paid_date', fmtDate(paid.date))}${dd('paid_ref', esc(paid.ref))}${dd('paid_amt', money(paid.amt))}` : ''}
+        <dt class="kv-sec">${esc(T('status'))}</dt>
+        <dd style="grid-column:1/-1"><div class="timeline-mini">${r.history.map(h => `<div><b>${esc(T('st_' + h.st))}</b> · ${fmtDate(h.at)}${h.c ? ` — ${esc(h.c)}` : ''}</div>`).join('')}</div></dd>
+      </dl>`, actions: acts});
+  },
+  recordPay(r) {
+    modal({title: `${ICON.check.replace('<svg', '<svg width="20"')} ${esc(T('rec_pay'))}`, body: `
+      <div class="row3">${fld(mm(T('paid_date')), `<input class="inp" type="date" id="pd_date" value="${todayISO()}">`, 1)}
+        ${fld(mm(T('paid_ref')), '<input class="inp mono" id="pd_ref">')}
+        ${fld(mm(T('paid_amt')), `<input class="inp" type="number" min="0" step="0.01" id="pd_amt" value="${Number(r.amount) || 0}">`, 1)}</div>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: () => {
+        if (!requireFields(['pd_date', 'pd_amt'])) return false;
+        const items = Object.assign({}, payOf(r), {paid: {date: val('pd_date'), ref: val('pd_ref'), amt: +val('pd_amt') || 0}});
+        const obj = Object.assign({}, r, {items, history: (r.history || []).concat([{at: todayISO(), st: 'paid'}])});
+        persist('requests', obj).then(sv => { Object.assign(r, sv); audit('paid', r.title); save(); renderView(); toast(T('st_paid') + ' · ' + r.title); }).catch(apiErr);
+      }}]});
+  },
   async reqStep(r, st, c) {
     const obj = Object.assign({}, r, {status: st, history: (r.history || []).concat([{at: todayISO(), st, c}])});
     try { const sv = await persist('requests', obj); Object.assign(r, sv); audit(st, r.title); save(); renderView(); } catch (e) { apiErr(e); }
@@ -1831,8 +2016,9 @@ const App = {
       return;
     }
     const date = todayISO(), y = +date.slice(0, 4), seq = nextSeq(r.kind, y);
-    const ref = r.kind === 'BUD' ? ((S.data.requests.find(x => x.kind === 'PRJ' && x.code === r.code) || {}).docNo || '') : '';
-    const doc = {id: uid(), type: r.kind, seq, year: y, no: fmtNo(r.kind, seq, y), date, subject: r.title, to: '', from: '', signer: 'president', lang: hasMM(r.title) ? 'mnw' : 'th', ref, code: r.code, links: r.links, note: '', status: 'issued', created: nowISO()};
+    const docOf = k => (S.data.requests.find(x => x.kind === k && x.code === r.code && x.docNo) || {}).docNo || '';
+    const ref = !r.code ? '' : r.kind === 'BUD' ? docOf('PRJ') : r.kind === 'PAY' ? (docOf('BUD') || docOf('PRJ')) : '';
+    const doc = {id: uid(), type: r.kind, seq, year: y, no: fmtNo(r.kind, seq, y), date, subject: r.title, to: '', from: '', signer: (typeOf(r.kind) || {}).signer || 'president', lang: hasMM(r.title) ? 'mnw' : 'th', ref, code: r.code, links: r.links, note: '', status: 'issued', created: nowISO()};
     S.data.docs.push(doc); r.docNo = doc.no;
     App.reqStep(r, 'approved');
     audit('approve', doc.no);
@@ -1982,6 +2168,7 @@ const App = {
   },
   printRequest(id) {
     const r = S.data.requests.find(x => x.id === id); if (!r) return;
+    if (r.kind === 'PAY') return App.printPay(r);
     const obj = OBJECTIVES.find(o => o.c === r.objective);
     const sum = r.items.reduce((a, i) => a + i.qty * i.price, 0);
     printSheet(r.docNo || r.code || r.title, `<h2>${esc(T('req_form'))} · ${esc(T(r.kind === 'PRJ' ? 'req_prj' : 'req_bud'))}</h2>
@@ -1992,6 +2179,54 @@ const App = {
       ${r.items.length ? `<table><thead><tr><th>${esc(T('item'))}</th><th>${esc(T('qty'))}</th><th>${esc(T('price'))}</th><th>${esc(T('total'))}</th></tr></thead><tbody>${r.items.map(i => `<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>${money(i.price)}</td><td>${money(i.qty * i.price)}</td></tr>`).join('')}<tr><td colspan="3" style="text-align:right"><b>${esc(T('total'))}</b></td><td><b>${money(sum)}</b></td></tr></tbody></table>` : ''}
       ${r.desc ? `<p><b>${esc(T('desc'))}</b><br>${mm(r.desc)}</p>` : ''}
       <div class="signs"><div>(............................)<br>${esc(T('sign_proposer'))}</div><div>(............................)<br>${mm(T('sign_treasurer'))}</div><div>(............................)<br>${mm(T('sign_president'))}</div></div>`);
+  },
+  printPay(r) {
+    const p = payOf(r), b = payBudget(r), pd = p.paid || {}, lg = lang();
+    const mn = k => L3(k, 'mnw');
+    const tr = k => lg !== 'mnw' && mn(k) && T(k) !== mn(k) ? T(k) : '';
+    const lb = k => `<span class="mnw">${esc(mn(k) || T(k))}</span>${tr(k) ? `<br><small>${esc(tr(k))}</small>` : ''}`;
+    const li = k => `<span class="mnw">${esc(mn(k) || T(k))}</span>${tr(k) ? ` <small>(${esc(tr(k))})</small>` : ''}`;
+    const box = on => on ? '☑' : '☐';
+    const opt = (keys, pre, cur) => keys.map(k => `${box(k === cur)} ${li(pre + k)}`).join('&nbsp;&nbsp; ');
+    const v = s => s ? mm(String(s)) : '';
+    const row = (k1, v1, k2, v2) => `<tr><td>${lb(k1)}</td><td>${v1}</td><td>${lb(k2)}</td><td>${v2}</td></tr>`;
+    const sec = (k, n = 4) => `<tr><th colspan="${n}" class="sec">${li(k)}</th></tr>`;
+    const thb = n => n === '' || n == null ? '' : money(n) + ' THB';
+    const reqDate = (r.history[0] || {}).at;
+    const line = '……………………………';
+    const signCell = (head, name, date) => `<td><b>${li(head)}</b><br>${li('sg_name')}: ${name ? v(name) : line}<br>${li('sg_sign')}: ${line}<br>${li('sg_date')}: ${date ? fmtDate(date) : line}</td>`;
+    const docs = PAY_DOCS.map(k => `${box((p.docs || []).includes(k))} ${li('ds_' + k)}${k === 'other' && p.docOther ? ' – ' + mm(p.docOther) : ''}`).join('&nbsp;&nbsp; ');
+    printSheet(r.docNo || 'PRF-MBSST', `
+      <div class="ptitle"><div class="mnw">${esc(mn('pay_form'))}</div><div>Payment Request Form${lg === 'th' ? ' · ' + esc(T('pay_form')) : ''}</div><small>${li('pay_sub')}</small></div>
+      <table class="pt">
+        ${row('pay_no', `<span class="mono">${esc(r.docNo || 'PRF-MBSST- ________')}</span>`, 'pay_reqdate', reqDate ? fmtDate(reqDate) : '')}
+        ${row('pay_need', p.need ? fmtDate(p.need) : '', 'pay_pri', opt(['normal', 'urgent'], 'pri_', p.pri))}
+        ${sec('pay_s1')}
+        ${row('pay_requester', v(r.proposer), 'pay_dept', v(p.dept))}
+        ${row('pay_payee', v(p.payee), 'pay_phone', v(p.phone))}
+        ${row('pay_sup', v(p.sup), 'pay_contact', v(p.contact))}
+        ${sec('pay_s2')}
+        ${row('pay_purpose', v(r.title), 'pay_amount', `<b>${thb(r.amount)}</b>`)}
+        ${row('pay_cat', opt(PAY_CATS.map(c => c.k), 'cat_', p.cat), 'pay_method', opt(['bank', 'cash'], 'pm_', p.method))}
+        ${row('pay_budget', v(p.budget), 'pay_voucher', v(p.voucher))}
+        ${row('pay_plan', r.code ? `<span class="mono">${esc(r.code)}</span>` : '', 'pay_type', opt(PAY_TYPES, 'pt_', p.ptype))}
+        <tr><td colspan="4"><small>${li('pay_annual')} – ${PAY_CATS.map(c => `<span class="mnw">${esc(c.line)}</span> ${money(c.a)}`).join(' | ')} THB</small></td></tr>
+        ${sec('pay_s3')}
+        ${row('b_approved', b ? thb(b.alloc) : '', 'b_before', b ? thb(b.before) : '')}
+        ${row('b_this', thb(r.amount), 'b_after', b ? thb(b.after) : '')}
+        <tr><td>${lb('b_check')}</td><td colspan="3">${opt(['in', 'move', 'out'], 'bc_', b ? b.check : '')}</td></tr>
+        ${sec('pay_s4')}
+        <tr><td>${lb('pay_reason')}</td><td colspan="3" style="height:20mm">${v(r.desc)}</td></tr>
+        <tr><td>${lb('pay_docs')}</td><td colspan="3">${docs}</td></tr>
+      </table>
+      <table class="pt sg">
+        ${sec('pay_s5', 3)}
+        <tr>${signCell('s_req', r.proposer, '')}${signCell('s_chk', '', '')}${signCell('s_apv', '', '')}</tr>
+        ${sec('pay_s6', 3)}
+        <tr>${signCell('s_payer', '', '')}
+          <td><b>${li('s_paid')}</b><br>${li('paid_date')}: ${pd.date ? fmtDate(pd.date) : line}<br>${li('paid_ref')}: ${pd.ref ? esc(pd.ref) : line}<br>${li('paid_amt')}: ${pd.amt != null && pd.date ? thb(pd.amt) : line}</td>
+          ${signCell('s_recv', p.payee, '')}</tr>
+      </table>`);
   },
   printMember(id) {
     const m = S.data.members.find(x => x.id === id); if (!m) return;
