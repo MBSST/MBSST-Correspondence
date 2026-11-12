@@ -1291,6 +1291,24 @@ function shrinkImage(file, max) {
     img.src = URL.createObjectURL(file);
   });
 }
+/** ย่อรูปโปรไฟล์ให้เล็กพอเก็บในเซลล์ชีตได้โดยตรง (ไม่ต้องอัปโหลด Drive) — ไม่เกิน ~40,000 ตัวอักษร */
+function smallPhoto(dataUrl, limit = 40000) {
+  return new Promise((ok, bad) => {
+    const img = new Image();
+    img.onload = () => {
+      for (const [max, q] of [[320, .82], [280, .72], [240, .62], [200, .55], [160, .5]]) {
+        const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+        const u = c.toDataURL('image/jpeg', q);
+        if (u.length <= limit) return ok(u);
+      }
+      bad(new Error('photo too large'));
+    };
+    img.onerror = bad;
+    img.src = dataUrl;
+  });
+}
 const safeImg = u => /^(https?:|data:image\/)/i.test(u || '') ? u : '';
 
 const SELF_FIELDS = ['name','nameAlt','univ','faculty','level','hometown','ordained','joined','bio','photo','contact','phone','email','address','birth','cv','works','pub'];
@@ -2433,10 +2451,8 @@ const App = {
   },
   async uploadPhoto() {
     if (!UI.photo) return '';
-    if (!API) return UI.photo;
-    toast(T('uploading') + ' 📷');
-    const j = await api('upload', {name: 'member-' + Date.now() + '.jpg', mime: 'image/jpeg', data: UI.photo.split(',')[1], publicPhoto: true});
-    return j.file.thumb;
+    // เก็บรูปขนาดเล็กลงชีตโดยตรง — ไม่พึ่งการแชร์ไฟล์ใน Google Drive (บางโดเมนห้ามแชร์สาธารณะ ทำให้บันทึกโปรไฟล์ไม่สำเร็จ)
+    return await smallPhoto(UI.photo);
   },
   register() {
     if (SELF) { App.editSelf(SELF.id); return; }
