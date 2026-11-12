@@ -169,6 +169,14 @@ html.no-anim *,html.no-anim *::before{animation:none!important;transition:none!i
 .list-row:hover{background:var(--surface-2)}
 .list-row .grow{flex:1;min-width:0}
 .list-row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bud-cat{margin-bottom:16px}.bud-cat h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bud-meter{height:12px;border-radius:7px;background:var(--surface-2);overflow:hidden;margin:10px 0 6px;display:flex}
+.bud-meter i{display:block;height:100%;background:var(--primary)}.bud-meter i.pend{background:var(--accent);opacity:.7}.bud-meter.over i{background:var(--bad,#c0392b)}
+.bud-nums{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem}.bud-nums b{font-variant-numeric:tabular-nums}
+.bud-edit .bline{display:grid;grid-template-columns:1.2fr 1.2fr 1fr 110px 34px;gap:6px;margin:6px 0;align-items:center}
+.bud-edit .bcat{border:1px solid var(--line);border-radius:var(--r,12px);padding:12px;margin:12px 0}
+@media(max-width:700px){.bud-edit .bline{grid-template-columns:1fr 1fr}.bud-edit .bline .inp:nth-child(3){grid-column:1/-1}}
+.doc-body{white-space:pre-wrap;line-height:1.7;max-height:320px;overflow:auto;background:var(--surface-2);border-radius:10px;padding:10px 12px}
 .bar{display:grid;grid-template-columns:52px 1fr 28px;align-items:center;gap:10px;margin:7px 0;font-size:.85rem}
 .bar i{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden;display:block}
 .bar i em{display:block;height:100%;border-radius:6px;width:0;transition:width 1s var(--ease)}
@@ -362,6 +370,7 @@ dl.kv dt{color:var(--muted)} dl.kv dd{margin:0;word-break:break-word}
 .ps .kv b{font-weight:600}
 .ps .row{display:flex;justify-content:space-between;gap:12px}
 .ps .body{min-height:85mm;margin:12px 0;border-top:1px dotted #bbb;padding-top:8px;color:#444}
+.ps .body.txt{color:#111;white-space:pre-wrap;line-height:1.75;text-align:justify}
 .ps .signs{display:flex;justify-content:space-around;gap:12px;margin-top:16mm;text-align:center;font-size:11pt}
 .ps .sign{margin:16mm 0 0 52%;text-align:center}
 .ps .void{position:absolute;right:0;top:0;border:3px solid #b91c1c;color:#b91c1c;font-weight:800;font-size:18pt;padding:2px 12px;transform:rotate(-8deg)}
@@ -497,7 +506,7 @@ const myRole = () => API ? ROLE : (ADMIN ? 'admin' : SELF ? 'member' : 'public')
 const can = r => RANK[myRole()] >= RANK[r];
 let CONNECTED = false, busyN = 0;
 const TBL = {docs: 'Docs', requests: 'Requests', members: 'Members', activities: 'Activities', history: 'History'};
-const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai'];
+const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai','budget'];
 async function api(action, payload = {}, key) {
   busyN++; syncUI();
   try {
@@ -513,7 +522,7 @@ async function api(action, payload = {}, key) {
 function syncUI() { const el = document.getElementById('sync'); if (el) { el.classList.toggle('on', busyN > 0); el.classList.toggle('off', !CONNECTED && busyN === 0); } }
 function apiErr(e) {
   const m = String((e && e.message) || e);
-  const known = {code_wrong: 'code_wrong', unauthorized: 'err_auth', 'admin only': 'login_needed', pin_format: 'pin_format', ai_no_key: 'ai_no_key', ai_limit: 'ai_limit', ai_too_long: 'ai_too_long'};
+  const known = {code_wrong: 'code_wrong', unauthorized: 'err_auth', 'admin only': 'login_needed', pin_format: 'pin_format', ai_no_key: 'ai_no_key', ai_limit: 'ai_limit', ai_too_long: 'ai_too_long', number_taken: 'number_taken', 'bad number': 'bad_number'};
   toast(known[m] ? T(known[m]) : T('err_net') + ' (' + m + ')', 'bad');
 }
 const shareTimers = {};
@@ -568,6 +577,7 @@ const ICON = {
   download: sv('<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>'),
   edit: sv('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
   trash: sv('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
+  coins: sv('<ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/>'),
   wand: sv('<path d="m15 4 5 5L9 20l-5-5z"/><path d="M4 4l2 2M3 9h2M9 3v2"/>'),
   file: sv('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>'),
   img: sv('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>'),
@@ -938,6 +948,55 @@ const STR_ROWS = [
  ['print','','พิมพ์','Print',''],
  ['printed','','พิมพ์เมื่อ','Printed',''],
  ['body_space','','(พื้นที่สำหรับข้อความ)','(space for the letter text)',''],
+ ['body','','เนื้อหาหนังสือ','Letter text',''],
+ ['body_in','','สาระสำคัญของหนังสือ','Summary of the letter',''],
+ ['body_ph','','วางหรือพิมพ์เนื้อหาหนังสือที่นี่ — จะพิมพ์ลงในหนังสือที่ออก (ขึ้นบรรทัดใหม่ได้ตามต้นฉบับ)','Paste or type the letter text here — it is printed on the issued letter (line breaks kept)',''],
+ ['body_in_ph','','สรุปหรือวางข้อความสำคัญของหนังสือรับ','Summary or key text of the incoming letter',''],
+ ['manual_no','','กำหนดเลขเอง (ลงเลขย้อนหลัง / เติมเลขที่ขาด)','Choose the number (backfill / fill a gap)',''],
+ ['manual_no_hint','','เว้นว่าง = ระบบออกเลขถัดไปให้ · เลขต้องไม่ซ้ำ','Leave empty for the next number · must not be in use',''],
+ ['seq','','ลำดับ','Sequence',''],
+ ['doc_number','','เลขหนังสือ (ชนิด · ลำดับ · ปี)','Number (type · sequence · year)',''],
+ ['renumber_hint','','แก้ชนิด ลำดับ หรือปี เพื่อเปลี่ยนเลข · เลขใหม่:','Change type, sequence or year to renumber · new number:',''],
+ ['number_taken','','เลขนี้มีอยู่แล้ว เลือกเลขอื่น','This number is already in use',''],
+ ['bad_number','','เลขไม่ถูกต้อง','Invalid number',''],
+ ['delete','','ลบ','Delete',''],
+ ['deleted','','ลบแล้ว','Deleted',''],
+ ['del_doc_note','','ลบเลขนี้ออกจากทะเบียนถาวร (กู้คืนไม่ได้) · ถ้าต้องการเก็บประวัติไว้ ให้ใช้ “ยกเลิกเลขนี้” แทน','Removes this number from the register permanently (cannot be undone). To keep a record, use “Void this number” instead.',''],
+ ['del_req_note','','ลบคำขอนี้ถาวร (กู้คืนไม่ได้) · เลขหนังสือที่ออกไปแล้วยังอยู่ในทะเบียน','Deletes this request permanently (cannot be undone). Any issued number stays in the register.',''],
+ ['edited_by_admin','','ผู้ดูแลแก้ไข','edited by admin',''],
+ ['nav_budget','','งบประมาณและการเงิน','Budget & finance',''],
+ ['b_fy','','ปีงบประมาณ','Fiscal year',''],
+ ['b_total','','งบประมาณทั้งปี','Annual budget',''],
+ ['b_used','','อนุมัติเบิกแล้ว','Approved spending',''],
+ ['b_paid','','จ่ายแล้ว','Paid',''],
+ ['b_pending','','รอพิจารณา','Pending',''],
+ ['b_left','','คงเหลือ','Remaining',''],
+ ['b_line','','รายการงบ','Budget line',''],
+ ['b_alloc','','วงเงิน','Allocation',''],
+ ['b_lines_sum','','รวมรายการย่อย','Sum of lines',''],
+ ['b_line_diff','','ยอดรวมรายการย่อยต่างจากวงเงินหมวด','Lines differ from the category allocation by',''],
+ ['b_add_line','','เพิ่มรายการ','Add line',''],
+ ['b_edit','','แก้ไขงบประมาณ','Edit budget',''],
+ ['b_reset','','คืนค่าตามแนวทาง ๒๐๒๖/๒๐๒๗','Reset to the 2026/2027 guideline',''],
+ ['b_reset_q','','คืนค่างบประมาณตามแนวทางเดิม? รายการที่แก้ไว้จะหาย','Reset the budget to the guideline? Your edits will be lost.',''],
+ ['b_requests','','คำของบ (BUD) และเบิกจ่าย (PAY)','Budget (BUD) and payment (PAY) requests',''],
+ ['b_note','','ยอดใช้ไป = คำขอเบิกจ่าย (PAY) ที่อนุมัติแล้วในปีงบประมาณนี้ แยกตามหมวด · ผู้ดูแลแก้ไขวงเงินและรายการได้','Spending = approved payment requests (PAY) in this fiscal year, by category · admins can edit allocations and lines',''],
+ ['b_source','','ที่มา','Source',''],
+ ['b_rules','','หลักการบริหารการเงิน','Financial management rules',''],
+ ['b_r1','','ทุกรายจ่ายต้องยื่นแบบขอเบิกจ่าย (PAY) ระบุวัตถุประสงค์ จำนวนเงิน หมวดงบ และผู้ขอ','Every expense needs a Payment Request (PAY) stating purpose, amount, budget category and requester',''],
+ ['b_r2','','ใช้จ่ายตามหมวดงบที่อนุมัติเท่านั้น · ย้ายงบข้ามหมวดต้องได้รับอนุมัติจากคณะกรรมการบริหาร','Spend only within the approved category · moving budget between categories needs Executive Committee approval',''],
+ ['b_r3','','เก็บหลักฐานทุกครั้ง: ใบสำคัญจ่าย ใบแจ้งหนี้ ใบเสร็จ หรือหลักฐานการโอน','Keep evidence for every payment: voucher, invoice, receipt or bank transfer slip',''],
+ ['b_r4','','ถอนเงินจากบัญชีต้องมีผู้ลงนามสองคน (ประธาน และเหรัญญิก หรือรองเหรัญญิก)','Bank withdrawals need two signatories (President and Treasurer or Assistant Treasurer)',''],
+ ['b_r5','','เหรัญญิกรายงานการเงินทุกเดือน และงบการเงินประจำปี · ตรวจงบเทียบรายจ่ายจริงทุกเดือนและทุกไตรมาส','Treasurer reports monthly and prepares the annual financial statement · budget vs actual reviewed monthly and quarterly',''],
+ ['b_r6','','เก็บข้อมูลการเงินใน Google Sheets และหลักฐานใน Google Drive ให้ผู้มีสิทธิ์ตรวจสอบได้','Records in Google Sheets and evidence in Google Drive, open to authorised reviewers',''],
+ ['b_role','','ตำแหน่ง','Role',''],
+ ['b_duty','','หน้าที่ด้านการเงิน','Financial duty',''],
+ ['b_exco','','คณะกรรมการบริหาร','Executive Committee',''],
+ ['b_d_pres','','กำกับนโยบายการเงิน อนุมัติหรือไม่อนุมัติรายจ่าย และยืนยันการตัดสินใจขั้นสุดท้าย','Oversees financial policy, approves or rejects spending, confirms final decisions',''],
+ ['b_d_treas','','ดูแลเงินสดและบัญชีธนาคาร ตรวจหมวดงบและยอดคงเหลือ ตรวจหลักฐาน และทำรายงานการเงิน','Manages cash and bank account, checks budget line and balance, verifies documents, prepares reports',''],
+ ['b_d_vtreas','','ช่วยดูแลเงินสดและบัญชีธนาคาร บันทึกรายการ และเก็บใบเสร็จ','Assists with cash and bank, records transactions, keeps receipts',''],
+ ['b_d_sec','','เก็บเอกสารและบันทึกการประชุมที่เกี่ยวกับการเงินและการอนุมัติ','Keeps financial and approval records and minutes',''],
+ ['b_d_exco','','พิจารณางบประมาณ อนุมัติรายจ่ายนอกแผน และตรวจรายงานการเงิน','Reviews the budget, approves unplanned spending, reviews financial reports',''],
  ['rcv_slip','','ใบลงรับหนังสือ','Incoming mail slip',''],
  ['register_title','','ทะเบียนหนังสือ','Document register',''],
  ['req_form','','แบบเสนอขออนุมัติ','Approval request form',''],
@@ -1018,17 +1077,48 @@ const AI_PROV = {anthropic: 'Claude (Anthropic)', openai: 'OpenAI', gemini: 'Goo
 const AI_SERVER = ['anthropic', 'openai', 'gemini', 'openrouter'];
 const AI_DEFAULT_MODELS = {anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5'], openai: ['gpt-5', 'gpt-5-mini'], gemini: ['gemini-2.5-pro', 'gemini-2.5-flash'], openrouter: ['openrouter/auto']};
 const AI_KEY_PH = {anthropic: 'sk-ant-…', openai: 'sk-…', gemini: 'AIza…', openrouter: 'sk-or-…'};
-const PAY_FY = '2026/2027';
-const PAY_CATS = [{k:'edu',a:129219,line:'ပရေင်ပညာ'},{k:'health',a:36920,line:'ပရေင်ထတ်ယုက်'},{k:'other',a:18460,line:'ကေင်ကာတၞဟ်ဟ်'}];
+/* งบประมาณ — ตามแนวทางการบริหารการเงิน MBSST ปี ๒๐๒๖/๒๐๒๗ (ผู้ดูแลแก้ได้ที่หน้า งบประมาณ) */
+const bl = (th, en, a, d = '', mnw = '') => ({n: {mnw, th, en}, a, d});
+const DEFAULT_BUDGET = {fy: '2026/2027', source: 'MBSST Financial Management and Budget Implementation Framework (Proposed Draft)', cats: [
+  {k: 'edu', a: 129219, n: {mnw: 'ပရေင်ပညာ', th: 'การศึกษา', en: 'Education'}, lines: [
+    bl('ทุนการศึกษาและสนับสนุนนักศึกษา', 'Scholarship & Student Support', 25844, 'รางวัลเมื่อสำเร็จการศึกษา ป.ตรี 2,000 · ป.โท 3,000 · ป.เอก 4,000 บาท (ครั้งเดียว) · คำขอทุนช่วยเหลือการศึกษา'),
+    bl('ภาษาอังกฤษ', 'English Language Proficiency', 19383, 'Academic English · Speaking & Communication · Academic Writing · IELTS'),
+    bl('ทักษะดิจิทัลและ AI', 'Digital Literacy and AI Skills', 19383, 'Computer · Office / Google Workspace · AI for education · Digital research · Online learning'),
+    bl('ทักษะวิจัยและวิชาการ', 'Research and Academic Skills', 12921, 'Research methodology · Academic writing · Critical thinking · Data analysis · Citation'),
+    bl('ภาวะผู้นำและการบริหาร', 'Leadership and Management', 12921, 'Leadership · Project management · Teamwork · Decision-making · Conflict resolution'),
+    bl('พุทธศาสนศึกษาและภาษามอญ', 'Buddhist Studies and Mon Language Development', 12921, 'Tipitaka & Buddhist literature · Mon language & literature · Translation · Community education'),
+    bl('ความรู้การเงินและการบริหารองค์กร', 'Financial Literacy and Organizational Skills', 12921, 'Personal finance · Budgeting & accounting · Non-profit management · Proposal writing · Fundraising'),
+    bl('ความรับผิดชอบต่อสังคมและชุมชน', 'Social Responsibility and Community Development', 12921, 'Volunteer management · Community engagement · Social research · Cultural preservation · Youth development')]},
+  {k: 'health', a: 36920, n: {mnw: 'ပရေင်ထတ်ယုက်', th: 'สุขภาพ / ช่วยเหลือ', en: 'Healthcare'}, lines: [
+    bl('สมาชิกอาพาธ / เจ็บป่วย', 'Members who are ill', 29536, '', 'ကောန်ဂကောံဒးတိုန်ရုင်ဂဍဲ'),
+    bl('สมาชิกมรณภาพ', 'Members who pass away', 7384, '', 'ကောန်ဂကောံစုတိအာ')]},
+  {k: 'other', a: 18460, n: {mnw: 'ကေင်ကာတၞဟ်ဟ်', th: 'บริหารทั่วไป', en: 'General Management'}, lines: [
+    bl('งานบริหาร ประชุม และประสานงาน', 'Administration, meetings & coordination', 4615, '', 'ပရေင်ကေင်ကာကောံဓရီ ကေုာံ ဆက်စၠောံ'),
+    bl('กระดาษ เอกสาร และวัสดุสิ้นเปลือง', 'Paper, documents & supplies', 4615, '', 'စက္ကူတ္ၞးလိက် ကေုာံ ကပေါတ်ရုင်မွးသုင်စောဲ'),
+    bl('ค่าเดินทางในงานชมรม', 'Travel for club work', 3692, '', 'ခရိတ်ဂၠံင်အာကၠင်စပ်ကဵုကမၠောန်ဂကောံ'),
+    bl('งานบริหารอื่นของชมรม', 'Other club administration', 3692, '', 'ကေင်ကာချဳဒရာင်စပ်ကဵုဂကောံ'),
+    bl('เงินสำรองฉุกเฉิน', 'Emergency reserve', 1846, '', 'သြန်သွးကေတ်ပြဟ်ပြေဟ်')]}
+]};
+const budget = () => { const b = S && S.settings && S.settings.budget; return b && Array.isArray(b.cats) && b.cats.length ? b : DEFAULT_BUDGET; };
+const payFY = () => budget().fy || DEFAULT_BUDGET.fy;
+const payCats = () => budget().cats.map(c => ({k: c.k, a: Number(c.a) || 0, line: (c.n && (c.n.mnw || c.n.th)) || c.k}));
+const budTotal = b => b.cats.reduce((t, c) => t + (Number(c.a) || 0), 0);
+/** ใช้ไปแล้วต่อหมวด = คำขอเบิกจ่าย (PAY) ที่อนุมัติแล้วในปีงบประมาณนี้ */
+function budUse(k) {
+  const fy = payFY(), pays = S.data.requests.filter(x => x.kind === 'PAY' && payOf(x).cat === k && (payOf(x).fy || fy) === fy);
+  const sum = l => l.reduce((t, x) => t + (Number(x.amount) || 0), 0);
+  const ok = pays.filter(x => x.status === 'approved');
+  return {used: sum(ok), paid: sum(ok.filter(x => payOf(x).paid)), pending: sum(pays.filter(x => x.status === 'submitted' || x.status === 'review')), n: pays.length};
+}
 const PAY_TYPES = ['full','adv','reimb'];
 const PAY_DOCS = ['voucher','bank','quote','minutes','other'];
 const REQ_LABEL = {PRJ:'req_prj',BUD:'req_bud',PAY:'req_pay'};
 const payOf = r => (r && r.kind === 'PAY' && r.items && !Array.isArray(r.items)) ? r.items : {};
 function payBudget(r) {
-  const p = payOf(r), c = PAY_CATS.find(x => x.k === p.cat);
+  const p = payOf(r), c = payCats().find(x => x.k === p.cat);
   if (!c) return null;
-  const fy = p.fy || PAY_FY;
-  const used = S.data.requests.filter(x => x.kind === 'PAY' && x.id !== r.id && x.status === 'approved' && payOf(x).cat === c.k && (payOf(x).fy || PAY_FY) === fy)
+  const fy = p.fy || payFY();
+  const used = S.data.requests.filter(x => x.kind === 'PAY' && x.id !== r.id && x.status === 'approved' && payOf(x).cat === c.k && (payOf(x).fy || payFY()) === fy)
     .reduce((t, x) => t + (Number(x.amount) || 0), 0);
   const amt = Number(r.amount) || 0, before = c.a - used, after = before - amt;
   return {alloc: c.a, before, amt, after, check: after >= 0 ? 'in' : 'move'};
@@ -1098,7 +1188,7 @@ function defaults() {
     settings: {lang:'th', mode:'auto', primary:'#b3191f', accent:'#d9a521', radius:14, fs:16, anim:true,
       fonts:{mnw:'Padauk', th:'Noto Sans Thai', en:'Inter'}, logo:'', texts:{}, pin:'MBSST2026',
       links:[{label:'Email MBSST', url:'mailto:mbsst2551@gmail.com'}], sheetsUrl:'',
-      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}},
+      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}, budget: JSON.parse(JSON.stringify(DEFAULT_BUDGET))},
     data: seed()
   };
 }
@@ -1345,7 +1435,7 @@ function payFormHTML(prjCodes) {
     ${fld(mm(T('pay_purpose')), '<input class="inp" id="r_title">', 1)}
     <div class="row2">${fld(mm(T('pay_amount')), '<input class="inp" type="number" min="0" step="0.01" id="r_amount" oninput="App.payCalc()">', 1)}
       <div class="fld"><span>${mm(T('pay_method'))}</span>${radios('p_method', ['bank', 'cash'], 'pm_', 'bank')}</div></div>
-    <div class="fld"><span>${mm(T('pay_cat'))}</span><div onchange="App.payCalc()">${radios('p_cat', PAY_CATS.map(c => c.k), 'cat_', 'edu')}</div><div class="budget-pv" id="p_left"></div></div>
+    <div class="fld"><span>${mm(T('pay_cat'))}</span><div onchange="App.payCalc()">${radios('p_cat', payCats().map(c => c.k), 'cat_', 'edu')}</div><div class="budget-pv" id="p_left"></div></div>
     <div class="row2">${fld(mm(T('pay_budget')), '<input class="inp" id="p_budget">')}${fld(mm(T('pay_voucher')), '<input class="inp mono" id="p_voucher">')}</div>
     <div class="row2">${fld(mm(T('pay_plan')), `<select class="inp" id="r_rel"><option value="">—</option>${prjCodes.map(c => `<option>${esc(c)}</option>`).join('')}</select>`)}
       <div class="fld"><span>${mm(T('pay_type'))}</span>${radios('p_type', PAY_TYPES, 'pt_', 'full')}</div></div>
@@ -1384,12 +1474,12 @@ function datalists() {
    CHROME
    ========================================================= */
 const NAV = [
-  ['overview','nav_overview','home','public'],['home','nav_home','grid','member'],['issue','nav_issue','stamp','admin'],['registry','nav_registry','list','member'],['requests','nav_requests','folder','member'],
+  ['overview','nav_overview','home','public'],['home','nav_home','grid','member'],['issue','nav_issue','stamp','admin'],['registry','nav_registry','list','member'],['requests','nav_requests','folder','member'],['budget','nav_budget','coins','member'],
   ['-'],['members','nav_members','users','public'],['activities','nav_activities','cal','public'],['history','nav_history','clock','public'],
   ['-'],['ai','nav_ai','wand','member'],['settings','nav_settings','gear','admin']
 ];
 /* สิทธิ์ขั้นต่ำของแต่ละหน้า (หน้าที่ไม่อยู่ในรายการ = สาธารณะ) */
-const VIEW_NEED = {home: 'member', issue: 'admin', registry: 'member', requests: 'member', ai: 'member', settings: 'admin'};
+const VIEW_NEED = {home: 'member', issue: 'admin', registry: 'member', requests: 'member', budget: 'member', ai: 'member', settings: 'admin'};
 const selfName = () => { const m = SELF && S.data.members.find(x => x.id === SELF.id); return (m && m.name) || (SELF && SELF.no) || ''; };
 function renderChrome() {
   applyTheme();
@@ -1403,14 +1493,14 @@ function renderChrome() {
       <button class="icon-btn" onclick="App.cycleMode()" title="${esc(T('theme'))}">${modeIc}</button>
       ${SELF ? `<a class="chip me-chip" href="#member/${esc(SELF.id || '')}" title="${esc(T('my_page'))}">${ic('users', 14)}<span class="hide-sm">${mm(selfName())}</span></a><button class="icon-btn me-out" onclick="App.memberLogout()" title="${esc(T('logout'))}" aria-label="${esc(T('logout'))}">${ICON.logout}</button>`
              : `<button class="btn ghost sm" onclick="App.memberAuth()" title="${esc(T('member_login'))}">${ICON.users}<span class="hide-sm">${esc(T('member_login'))}</span></button>`}
-      ${ADMIN ? `<button class="chip admin-on" onclick="App.logout()" title="${esc(T('logout'))}">★ ${mm(T('admin'))}</button>`
+      ${ADMIN ? `<button class="chip admin-on" onclick="App.logout()" title="${esc(T('logout'))}">★<span class="hide-sm"> ${mm(T('admin'))}</span></button>`
               : `<button class="btn ghost sm" onclick="App.login()">${ICON.lock}<span class="hide-sm">${mm(T('admin'))}</span></button>`}
     </div>`;
   $('#sidebar').innerHTML = NAV.map(n => n[0] === '-' ? '<div class="nav-sep"></div>' :
     `<a class="nav-a ${VIEW === n[0] ? 'on' : ''}" href="#${n[0]}" onclick="App.toggleNav(false)">${ICON[n[2]]}<span>${mm(T(n[1]))}</span>${!can(n[3]) ? `<span style="margin-left:auto;opacity:.5">${ic('lock', 14)}</span>` : ''}</a>`).join('')
     + `<div class="nav-foot">${esc(T(API ? 'live_badge' : 'draft_badge'))}</div>`;
 }
-const VIEWS = {overview: viewOverview, ai: viewAI, member: viewMemberPage, home: viewHome, issue: viewIssue, registry: viewRegistry, requests: viewRequests, members: viewMembers, activities: viewActivities, history: viewHistory, settings: viewSettings};
+const VIEWS = {overview: viewOverview, ai: viewAI, member: viewMemberPage, home: viewHome, issue: viewIssue, registry: viewRegistry, requests: viewRequests, budget: viewBudget, members: viewMembers, activities: viewActivities, history: viewHistory, settings: viewSettings};
 function renderView() {
   const m = $('#main');
   m.innerHTML = (can(VIEW_NEED[VIEW] || 'public') ? (VIEWS[VIEW] || viewOverview)() : gateView(VIEW_NEED[VIEW])) + footer();
@@ -1552,7 +1642,7 @@ function aiContext() {
     documents: S.data.docs.slice(-600).map(d => ({no: d.no, type: d.type, date: d.date, subject: cut(d.subject, 160), status: d.status, project: d.code || undefined, ref: d.ref || undefined, to: cut(d.to, 60), from: cut(d.from, 60)})),
     requests: S.data.requests.map(r => { const p = payOf(r); return {kind: r.kind, title: cut(r.title, 160), status: r.status, amount_thb: r.amount, project: r.code || undefined, doc_no: r.docNo || undefined, submitted: (r.history[0] || {}).at, expense_category: p.cat, payment_type: p.ptype, paid_thb: p.paid ? p.paid.amt : undefined,
       items: Array.isArray(r.items) && r.items.length ? r.items.map(x => `${x.name} ${x.qty}×${x.price}`).join('; ') : undefined}; }),
-    budget_2026_27: PAY_CATS.map(c => { const b = payBudget({id: '', kind: 'PAY', amount: 0, items: {cat: c.k, fy: PAY_FY}}); return {category: c.k, allocated_thb: c.a, remaining_thb: b ? b.before : c.a}; }),
+    budget_2026_27: payCats().map(c => { const b = payBudget({id: '', kind: 'PAY', amount: 0, items: {cat: c.k, fy: payFY()}}); return {category: c.k, allocated_thb: c.a, remaining_thb: b ? b.before : c.a}; }),
     members: S.data.members.map(m => ({name: m.name, position: m.role, status: m.status, university: m.univ || undefined, faculty: m.faculty || undefined, level: m.level || undefined, joined: m.joined || undefined, hometown: m.hometown || undefined, works: (m.works || []).length || undefined, cv: cut(m.cv, 400)})),
     activities: S.data.activities.map(a => ({date: a.date, title: cut(L(a.title), 160), place: a.place || undefined, project: a.code || undefined, desc: cut(a.desc, 300)})),
     history: S.data.history.map(h => ({date: h.date, title: cut(L(h.title), 160)}))
@@ -1697,7 +1787,10 @@ function viewIssue() {
         ${t.p ? `<div class="fld"><span>${esc(T('project_code'))}</span><div class="inline"><input class="inp mono" id="f_code" list="dl-codes" placeholder="02-01-26-030126"><button type="button" class="btn" onclick="App.codeBuilder('f_code')">${ICON.wand} ${esc(T('build_code'))}</button></div></div>` : ''}
         ${fld(T('ref'), `<input class="inp mono" id="f_ref" list="dl-nos" placeholder="MBSST-RCV 001/${curYear()}">`)}
         <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('f_links')}</div>
+        ${fld(isIn ? T('body_in') : T('body'), `<textarea class="inp" id="f_body" rows="${isIn ? 4 : 10}" placeholder="${esc(T(isIn ? 'body_in_ph' : 'body_ph'))}"></textarea>`)}
         ${fld(T('note'), '<textarea class="inp" id="f_note" rows="2"></textarea>')}
+        <details class="fld"><summary class="small">${esc(T('manual_no'))}</summary>
+          <div class="inline" style="margin-top:8px"><input class="inp mono" type="number" min="1" id="f_seq" placeholder="${esc(T('seq'))}" oninput="App.updPreview()" style="max-width:140px"><span class="small muted">${esc(T('manual_no_hint'))}</span></div></details>
         ${datalists()}
       </form>
       <aside class="card preview sticky">
@@ -1777,6 +1870,50 @@ function viewRequests() {
         <div class="small">${esc(T('amount'))}: <b>${money(r.amount)}</b> · ${esc(T('proposer'))}: ${mm(r.proposer)}</div>
         <div class="steps">${order.map((s, k) => `<i class="${r.status === 'returned' ? (k === 0 ? 'bad' : '') : (k <= idx ? 'on' : '')}"></i>`).join('')}</div>
       </div>`; }).join('')}</div>` : `<div class="card empty">${ICON.folder}<div>${esc(T('no_data'))}</div></div>`}
+  </div>`;
+}
+
+/* ---------- budget ---------- */
+function viewBudget() {
+  const b = budget(), total = budTotal(b), fy = payFY();
+  const use = Object.fromEntries(b.cats.map(c => [c.k, budUse(c.k)]));
+  const used = Object.values(use).reduce((t, u) => t + u.used, 0), pend = Object.values(use).reduce((t, u) => t + u.pending, 0);
+  const pct = (x, of) => of ? Math.round(x / of * 1000) / 10 : 0;
+  const stat = (ic, n, k, i) => `<div class="card stat" style="--i:${i}"><div class="ic">${ICON[ic]}</div><div><b>${money(n)}</b><span>${mm(T(k))}</span></div></div>`;
+  const reqs = S.data.requests.filter(r => r.kind === 'BUD' || r.kind === 'PAY').sort((x, y) => String((y.history[0] || {}).at || '').localeCompare(String((x.history[0] || {}).at || '')));
+  const catCard = (c, i) => {
+    const u = use[c.k], a = Number(c.a) || 0, left = a - u.used, lines = c.lines || [], lsum = lines.reduce((t, l) => t + (Number(l.a) || 0), 0);
+    return `<div class="card bud-cat" style="--i:${i}">
+      <h3>${badge('PAY')} ${mm(L(c.n))}${lang() !== 'mnw' && c.n.mnw ? ` <span class="mnw small muted">${esc(c.n.mnw)}</span>` : ''}<span class="spacer" style="flex:1"></span><span class="chip">${pct(a, total)}%</span><b>${money(a)}</b></h3>
+      <div class="bud-meter ${left < 0 ? 'over' : ''}"><i style="width:${Math.min(100, pct(u.used, a))}%"></i><i class="pend" style="width:${Math.max(0, Math.min(100 - pct(u.used, a), pct(u.pending, a)))}%"></i></div>
+      <div class="bud-nums"><span>${esc(T('b_used'))} <b>${money(u.used)}</b> (${pct(u.used, a)}%)</span><span>${esc(T('b_paid'))} <b>${money(u.paid)}</b></span><span>${esc(T('b_pending'))} <b>${money(u.pending)}</b></span><span>${esc(T(left < 0 ? 'over_budget' : 'b_left'))} <b>${money(left)}</b></span></div>
+      ${lines.length ? `<div class="tbl-wrap resp" style="margin-top:12px"><table><thead><tr><th>${esc(T('b_line'))}</th><th style="width:70px">%</th><th style="width:110px">${esc(T('amount'))}</th></tr></thead><tbody>
+        ${lines.map(l => `<tr><td data-l="${esc(T('b_line'))}"><b>${mm(L(l.n))}</b>${lang() !== 'mnw' && l.n.mnw ? `<div class="mnw small muted">${esc(l.n.mnw)}</div>` : ''}${l.d ? `<div class="small muted">${mm(l.d)}</div>` : ''}</td><td data-l="%">${pct(Number(l.a) || 0, a)}%</td><td data-l="${esc(T('amount'))}" class="mono">${money(Number(l.a) || 0)}</td></tr>`).join('')}
+        <tr><td style="text-align:right"><b>${esc(T('total'))}</b></td><td>${pct(lsum, a)}%</td><td class="mono"><b>${money(lsum)}</b></td></tr></tbody></table></div>
+        ${Math.abs(lsum - a) > 10 ? `<div class="banner" style="margin-top:8px">${ICON.info}<span>${esc(T('b_line_diff'))} ${money(lsum - a)}</span></div>` : ''}` : ''}
+    </div>`;
+  };
+  return `<div class="view">
+    <div class="page-head"><h2>${ICON.coins.replace('<svg', '<svg width="26"')} ${mm(T('nav_budget'))}</h2><span class="chip">${esc(T('b_fy'))} ${esc(fy)}</span><span class="spacer"></span>
+      <button class="btn" onclick="App.printBudget()">${ICON.print} ${esc(T('print'))}</button>
+      <button class="btn" onclick="App.newRequest('BUD')">${ICON.plus} ${esc(T('req_bud'))}</button>
+      <button class="btn primary" onclick="App.newRequest('PAY')">${ICON.plus} ${esc(T('req_pay'))}</button>
+      ${ADMIN ? `<button class="btn accent" onclick="App.editBudget()">${ICON.edit} ${esc(T('b_edit'))}</button>` : ''}</div>
+    <div class="banner">${ICON.info}<span>${esc(T('b_note'))}</span></div>
+    <section class="stats stagger">${stat('coins', total, 'b_total', 0)}${stat('check', used, 'b_used', 1)}${stat('folder', pend, 'b_pending', 2)}${stat('stamp', total - used, 'b_left', 3)}</section>
+    <div class="stagger">${b.cats.map(catCard).join('')}</div>
+    <div class="card"><h3>${ICON.folder.replace('<svg', '<svg width="18"')} ${mm(T('b_requests'))}</h3>
+      ${reqs.length ? `<div class="tbl-wrap resp"><table><thead><tr><th>${esc(T('type'))}</th><th>${esc(T('subject'))}</th><th>${esc(T('number'))}</th><th>${esc(T('pay_cat'))}</th><th>${esc(T('amount'))}</th><th>${esc(T('status'))}</th>${ADMIN ? '<th></th>' : ''}</tr></thead><tbody>
+        ${reqs.map(r => `<tr onclick="App.openRequest('${r.id}')"><td data-l="${esc(T('type'))}">${badge(r.kind)}</td><td data-l="${esc(T('subject'))}">${mm(r.title)}</td><td data-l="${esc(T('number'))}" class="mono small">${esc(r.docNo || '—')}</td>
+          <td data-l="${esc(T('pay_cat'))}">${payOf(r).cat ? mm(T('cat_' + payOf(r).cat)) : '—'}</td><td data-l="${esc(T('amount'))}" class="mono">${money(r.amount)}</td><td data-l="${esc(T('status'))}">${payOf(r).paid ? stChip('paid') + ' ' : ''}${stChip(r.status)}</td>
+          ${ADMIN ? `<td><span class="inline" onclick="event.stopPropagation()"><button class="icon-btn" title="${esc(T('edit'))}" onclick="App.editReq('${r.id}')">${ICON.edit}</button><button class="icon-btn" title="${esc(T('delete'))}" onclick="App.delReq('${r.id}')">${ICON.trash}</button></span></td>` : ''}</tr>`).join('')}</tbody></table></div>`
+      : `<div class="empty">${esc(T('no_data'))}</div>`}</div>
+    <div class="card"><h3>${ICON.info.replace('<svg', '<svg width="18"')} ${mm(T('b_rules'))}</h3>
+      <ol class="small" style="line-height:1.8;margin:0;padding-left:20px">${['b_r1','b_r2','b_r3','b_r4','b_r5','b_r6'].map(k => `<li>${mm(T(k))}</li>`).join('')}</ol>
+      <div class="tbl-wrap resp" style="margin-top:12px"><table><thead><tr><th>${esc(T('b_role'))}</th><th>${esc(T('b_duty'))}</th></tr></thead><tbody>
+        ${[['president','b_d_pres'],['treasurer','b_d_treas'],['vtreasurer','b_d_vtreas'],['secretary','b_d_sec']].map(([r, k]) => `<tr><td data-l="${esc(T('b_role'))}"><b>${mm(role(r))}</b></td><td data-l="${esc(T('b_duty'))}">${mm(T(k))}</td></tr>`).join('')}
+        <tr><td data-l="${esc(T('b_role'))}"><b>${mm(T('b_exco'))}</b></td><td data-l="${esc(T('b_duty'))}">${mm(T('b_d_exco'))}</td></tr></tbody></table></div>
+      ${b.source ? `<p class="small muted" style="margin-top:10px">${esc(T('b_source'))}: ${esc(b.source)}</p>` : ''}</div>
   </div>`;
 }
 
@@ -2092,7 +2229,9 @@ const App = {
   updPreview() {
     const el = $('#pv-no'); if (!el || !UI.issueType) return;
     const d = val('f_date') || todayISO(), y = +d.slice(0, 4);
-    const no = fmtNo(UI.issueType, nextSeq(UI.issueType, y), y);
+    const ms = +val('f_seq') || 0, taken = ms && S.data.docs.some(x => x.type === UI.issueType && +x.year === y && +x.seq === ms);
+    const no = fmtNo(UI.issueType, ms || nextSeq(UI.issueType, y), y);
+    el.classList.toggle('bad', !!taken); el.title = taken ? T('number_taken') : '';
     if (el.textContent !== no) { el.textContent = no; el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
   },
   quorum() {
@@ -2121,9 +2260,14 @@ const App = {
     const date = val('f_date'), y = +date.slice(0, 4);
     const doc = {id: uid(), type: t.code, year: y, date, subject: val('f_subject'), lang: val('f_lang'), to: val('f_to'), from: val('f_from'),
       theirNo: val('f_theirno'), theirDate: val('f_theirdate'), signer: val('f_signer'), assigned: val('f_assigned'),
-      ref: val('f_ref'), code: val('f_code'), links: readLinks('f_links'), note: val('f_note'), status, created: nowISO()};
+      ref: val('f_ref'), code: val('f_code'), links: readLinks('f_links'), note: val('f_note'), body: val('f_body'), status, created: nowISO()};
+    const ms = Math.floor(+val('f_seq') || 0);
+    if (ms) {
+      if (S.data.docs.some(x => x.type === t.code && +x.year === y && +x.seq === ms)) { toast(T('number_taken'), 'bad'); return; }
+      doc.manualSeq = ms;
+    }
     if (t.code === 'MIN') doc.meeting = {kind: val('f_mkind'), present: +val('f_present') || 0, total: +val('f_total') || 0};
-    const preview = fmtNo(t.code, nextSeq(t.code, y), y);
+    const preview = fmtNo(t.code, doc.manualSeq || nextSeq(t.code, y), y);
     modal({title: esc(T('confirm_issue')), body: `
       <div style="text-align:center;margin-bottom:14px"><div class="pv-no mono" style="display:inline-block">${esc(preview)}</div></div>
       <dl class="kv"><dt>${esc(T('type'))}</dt><dd>${badge(t.code)} ${mm(L(t.n))}</dd><dt>${esc(T('date'))}</dt><dd>${fmtDate(date)}</dd>
@@ -2136,12 +2280,16 @@ const App = {
       }}]});
   },
   async commitIssue(doc) {
-    if (!API) { doc.seq = nextSeq(doc.type, doc.year); doc.no = fmtNo(doc.type, doc.seq, doc.year); S.data.docs.push(doc); audit(doc.status, doc.no); save(true); return doc; }
+    if (!API) { doc.seq = doc.manualSeq || nextSeq(doc.type, doc.year); delete doc.manualSeq; doc.no = fmtNo(doc.type, doc.seq, doc.year); S.data.docs.push(doc); audit(doc.status, doc.no); save(true); return doc; }
     const j = await api('issue', {doc: Object.assign({}, doc, {digits: (typeOf(doc.type) || {}).d || 3})});
     S.data.docs.push(j.doc);
     return j.doc;
   },
   async saveDoc(d, patch, msg) {
+    if (patch.renumber && !API) {
+      if (S.data.docs.some(x => x.id !== d.id && x.type === patch.type && +x.year === +patch.year && +x.seq === +patch.seq)) { toast(T('number_taken'), 'bad'); return; }
+      patch = Object.assign({}, patch, {no: fmtNo(patch.type, patch.seq, patch.year)}); delete patch.renumber;
+    }
     try { const saved = await persist('docs', Object.assign({}, d, patch)); Object.assign(d, saved); audit('edit', d.no); save(); renderView(); toast(msg || T('saved')); }
     catch (e) { apiErr(e); }
   },
@@ -2161,7 +2309,8 @@ const App = {
     const d = S.data.docs.find(x => x.id === id); if (!d) return;
     const t = typeOf(d.type) || {n: {}}, isIn = t.g === 'in';
     const acts = [{label: `${ICON.copy} ${esc(T('copy'))}`, on: () => { copyText(d.no); return false; }}, {label: `${ICON.print} ${esc(T('print'))}`, on: () => { App.printDoc(id); return false; }}];
-    if (ADMIN && d.status !== 'void') acts.push({label: `${ICON.edit} ${esc(T('edit'))}`, on: () => setTimeout(() => App.editDoc(id), 220)});
+    if (ADMIN) acts.push({label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: () => setTimeout(() => App.delDoc(id), 220)});
+    if (ADMIN) acts.push({label: `${ICON.edit} ${esc(T('edit'))}`, on: () => setTimeout(() => App.editDoc(id), 220)});
     if (ADMIN && d.status === 'draft') acts.push({label: esc(T('mark_issued')), cls: 'primary', on: () => { App.saveDoc(d, {status: 'issued'}, T('st_issued') + ' · ' + d.no); }});
     if (ADMIN && d.status !== 'void') acts.push({label: esc(T('void_doc')), cls: 'danger', on: () => setTimeout(() => App.voidDoc(id), 220)});
     const mt = d.meeting;
@@ -2177,24 +2326,126 @@ const App = {
         <dt>${esc(T('ref'))}</dt><dd class="mono">${d.ref ? `<a href="javascript:void 0" onclick="App.openByNo('${esc(d.ref)}')">${esc(d.ref)}</a>` : '—'}</dd>
         <dt>${esc(T('language'))}</dt><dd>${LANG_LABEL[d.lang] || '—'}</dd>
         <dt>${esc(T('links'))}</dt><dd>${linksHTML(d.links)}</dd><dt>${esc(T('note'))}</dt><dd>${mm(d.note) || '—'}</dd>
+        ${d.body ? `<dt>${esc(T(isIn ? 'body_in' : 'body'))}</dt><dd><div class="doc-body">${mm(d.body)}</div></dd>` : ''}
       </dl>`, actions: acts});
   },
   openByNo(no) { const d = S.data.docs.find(x => x.no === no); if (d) App.openDoc(d.id); else toast(no + ' ?', 'bad'); },
   editDoc(id) {
     const d = S.data.docs.find(x => x.id === id), t = typeOf(d.type) || {}, isIn = t.g === 'in';
     modal({title: `${ICON.edit.replace('<svg', '<svg width="20"')} <span class="mono">${esc(d.no)}</span>`, size: 'lg', body: `
+      <div class="fld"><span>${esc(T('doc_number'))}</span><div class="row3">
+        <select class="inp" id="e_type" onchange="App.ePv()">${types().map(x => `<option value="${x.code}" ${x.code === d.type ? 'selected' : ''}>${x.code} · ${esc(L(x.n))}</option>`).join('')}</select>
+        <input class="inp mono" type="number" min="1" id="e_seq" value="${esc(d.seq)}" oninput="App.ePv()" title="${esc(T('seq'))}">
+        <input class="inp mono" type="number" min="1900" max="2999" id="e_year" value="${esc(d.year)}" oninput="App.ePv()" title="${esc(T('year'))}"></div>
+        <span class="small muted">${esc(T('renumber_hint'))} <b class="mono" id="e_pv">${esc(d.no)}</b></span></div>
+      <div class="row2">${fld(T('date'), `<input class="inp" type="date" id="e_date" value="${esc(d.date)}">`, 1)}${fld(T('status'), `<select class="inp" id="e_status">${['draft','issued','received','void'].map(x => `<option value="${x}" ${d.status === x ? 'selected' : ''}>${esc(T('st_' + x))}</option>`).join('')}</select>`)}</div>
       ${fld(T('subject'), `<input class="inp" id="e_subject" value="${esc(d.subject)}">`, 1)}
       ${isIn ? `<div class="row2">${fld(T('from'), `<input class="inp" id="e_from" value="${esc(d.from)}">`)}${fld(T('assigned'), roleSelect('e_assigned', d.assigned))}</div>`
              : `<div class="row2">${fld(T('to'), `<input class="inp" id="e_to" value="${esc(d.to)}">`)}${fld(T('signer'), roleSelect('e_signer', d.signer))}</div>`}
       <div class="row2">${fld(T('project_code'), `<input class="inp mono" id="e_code" list="dl-codes" value="${esc(d.code)}">`)}${fld(T('ref'), `<input class="inp mono" id="e_ref" list="dl-nos" value="${esc(d.ref)}">`)}</div>
       <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('e_links', d.links || [])}</div>
+      ${fld(isIn ? T('body_in') : T('body'), `<textarea class="inp" id="e_body" rows="10" placeholder="${esc(T(isIn ? 'body_in_ph' : 'body_ph'))}">${esc(d.body || '')}</textarea>`)}
       ${fld(T('note'), `<textarea class="inp" id="e_note" rows="2">${esc(d.note)}</textarea>`)}${datalists()}`,
       actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: () => {
-        if (!requireFields(['e_subject'])) return false;
-        const patch = {subject: val('e_subject'), code: val('e_code'), ref: val('e_ref'), links: readLinks('e_links'), note: val('e_note')};
+        if (!requireFields(['e_subject', 'e_date', 'e_seq', 'e_year'])) return false;
+        const patch = {subject: val('e_subject'), code: val('e_code'), ref: val('e_ref'), links: readLinks('e_links'), note: val('e_note'), body: val('e_body'), date: val('e_date'), status: val('e_status')};
+        if (patch.status !== 'void') patch.voidReason = '';
+        const nt = val('e_type'), ns = Math.floor(+val('e_seq')), ny = Math.floor(+val('e_year'));
+        if (nt !== d.type || ns !== +d.seq || ny !== +d.year) {
+          if (!(ns >= 1) || !(ny >= 1900)) { toast(T('bad_number'), 'bad'); return false; }
+          if (S.data.docs.some(x => x.id !== d.id && x.type === nt && +x.year === ny && +x.seq === ns)) { toast(T('number_taken'), 'bad'); return false; }
+          Object.assign(patch, {renumber: true, type: nt, seq: ns, year: ny, digits: (typeOf(nt) || {}).d || 3});
+        }
         if (isIn) Object.assign(patch, {from: val('e_from'), assigned: val('e_assigned')}); else Object.assign(patch, {to: val('e_to'), signer: val('e_signer')});
         App.saveDoc(d, patch);
       }}]});
+  },
+  ePv() { const e = $('#e_pv'); if (e) e.textContent = fmtNo(val('e_type'), Math.floor(+val('e_seq')) || 0, Math.floor(+val('e_year')) || ''); },
+  delDoc(id) {
+    const d = S.data.docs.find(x => x.id === id); if (!d) return;
+    modal({title: `${ICON.trash.replace('<svg', '<svg width="20"')} ${esc(T('delete'))} · <span class="mono">${esc(d.no)}</span>`,
+      body: `<div class="banner">${ICON.info}<span>${esc(T('del_doc_note'))}</span></div><p>${mm(d.subject)}</p>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: (_, close, btn) => { (async () => {
+        btn.classList.add('loading');
+        try { await removeRemote('docs', id); S.data.docs = S.data.docs.filter(x => x.id !== id); audit('delete', d.no); save(); close(); renderView(); toast(T('deleted') + ' · ' + d.no); }
+        catch (e) { btn.classList.remove('loading'); apiErr(e); }
+      })(); return false;
+      }}]});
+  },
+  editReq(id) {
+    const r = S.data.requests.find(x => x.id === id); if (!r) return;
+    const p = payOf(r);
+    modal({title: `${ICON.edit.replace('<svg', '<svg width="20"')} ${badge(r.kind)} ${mm(r.title)}`, size: 'lg', body: `
+      ${fld(T('subject'), `<input class="inp" id="q_title" value="${esc(r.title)}">`, 1)}
+      <div class="row2">${fld(T('proposer'), `<input class="inp" id="q_prop" value="${esc(r.proposer)}">`)}${fld(T('amount'), `<input class="inp" type="number" min="0" id="q_amount" value="${esc(r.amount)}">`)}</div>
+      <div class="row2">${fld(T('project_code'), `<input class="inp mono" id="q_code" list="dl-codes" value="${esc(r.code)}">`)}${fld(T('number'), `<input class="inp mono" id="q_docno" list="dl-nos" value="${esc(r.docNo)}">`)}</div>
+      <div class="row2">${fld(T('status'), `<select class="inp" id="q_st">${['submitted','review','approved','returned'].map(x => `<option value="${x}" ${r.status === x ? 'selected' : ''}>${esc(T('st_' + x))}</option>`).join('')}</select>`)}
+        ${r.kind === 'PAY' ? fld(T('pay_cat'), `<select class="inp" id="q_cat">${payCats().map(c => `<option value="${c.k}" ${p.cat === c.k ? 'selected' : ''}>${esc(T('cat_' + c.k))}</option>`).join('')}</select>`) : ''}</div>
+      ${fld(T('desc'), `<textarea class="inp" id="q_desc" rows="4">${esc(r.desc)}</textarea>`)}${datalists()}`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: (_, close, btn) => { (async () => {
+        if (!requireFields(['q_title'])) return false;
+        const o = Object.assign({}, r, {title: val('q_title'), proposer: val('q_prop'), amount: +val('q_amount') || 0, code: val('q_code'), docNo: val('q_docno'), desc: val('q_desc')});
+        const st = val('q_st');
+        if (st !== r.status) { o.status = st; o.history = (r.history || []).concat([{at: todayISO(), st, c: T('edited_by_admin')}]); }
+        if (r.kind === 'PAY') o.items = Object.assign({}, p, {cat: val('q_cat')});
+        btn.classList.add('loading');
+        try { Object.assign(r, await persist('requests', o)); audit('edit', r.kind + ' ' + r.title); save(); close(); renderView(); toast(T('saved')); }
+        catch (e) { btn.classList.remove('loading'); apiErr(e); }
+      })(); return false;
+      }}]});
+  },
+  delReq(id) {
+    const r = S.data.requests.find(x => x.id === id); if (!r) return;
+    modal({title: `${ICON.trash.replace('<svg', '<svg width="20"')} ${esc(T('delete'))} · ${badge(r.kind)}`,
+      body: `<div class="banner">${ICON.info}<span>${esc(T('del_req_note'))}</span></div><p><b>${mm(r.title)}</b> · ${money(r.amount)}${r.docNo ? ` · <span class="mono">${esc(r.docNo)}</span>` : ''}</p>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: (_, close, btn) => { (async () => {
+        btn.classList.add('loading');
+        try { await removeRemote('requests', id); S.data.requests = S.data.requests.filter(x => x.id !== id); audit('delete', r.kind + ' ' + r.title); save(); close(); renderView(); toast(T('deleted')); }
+        catch (e) { btn.classList.remove('loading'); apiErr(e); }
+      })(); return false;
+      }}]});
+  },
+  editBudget() {
+    const b = JSON.parse(JSON.stringify(budget()));
+    const line = (l = {n: {}, a: 0, d: ''}) => `<div class="bline"><input class="inp" data-k="th" placeholder="ไทย" value="${esc(l.n.th || '')}"><input class="inp" data-k="en" placeholder="English" value="${esc(l.n.en || '')}"><input class="inp mnw" data-k="mnw" placeholder="ဘာသာမန်" value="${esc(l.n.mnw || '')}"><input class="inp mono" type="number" min="0" data-k="a" value="${esc(l.a)}" oninput="App.budSum()"><button type="button" class="icon-btn" onclick="this.parentNode.remove();App.budSum()">${ICON.x}</button><input type="hidden" data-k="d" value="${esc(l.d || '')}"></div>`;
+    App._budLine = line;
+    modal({title: `${ICON.coins.replace('<svg', '<svg width="20"')} ${esc(T('b_edit'))}`, size: 'lg', body: `<div class="bud-edit">
+      <div class="row2">${fld(T('b_fy'), `<input class="inp mono" id="bu_fy" value="${esc(b.fy)}">`, 1)}${fld(T('b_source'), `<input class="inp" id="bu_src" value="${esc(b.source || '')}">`)}</div>
+      ${b.cats.map(c => `<div class="bcat" data-cat="${c.k}">
+        <div class="row3">${fld(T('cat_' + c.k) + ' · ไทย', `<input class="inp" data-c="th" value="${esc(c.n.th)}">`)}${fld('English', `<input class="inp" data-c="en" value="${esc(c.n.en)}">`)}${fld('ဘာသာမန်', `<input class="inp mnw" data-c="mnw" value="${esc(c.n.mnw)}">`)}</div>
+        <div class="row2">${fld(T('b_alloc'), `<input class="inp mono" type="number" min="0" data-c="a" value="${esc(c.a)}" oninput="App.budSum()">`)}<div class="fld"><span>${esc(T('b_lines_sum'))}</span><b class="mono" data-sum>0</b></div></div>
+        <div class="small muted">${esc(T('b_line'))}</div><div data-lines>${(c.lines || []).map(line).join('')}</div>
+        <button type="button" class="btn ghost sm" onclick="this.previousElementSibling.insertAdjacentHTML('beforeend', App._budLine());App.budSum()">${ICON.plus} ${esc(T('b_add_line'))}</button></div>`).join('')}
+      <p class="small">${esc(T('b_total'))}: <b class="mono" id="bu_total">0</b></p>
+      <div class="inline"><button type="button" class="btn ghost sm" onclick="App.budReset()">${esc(T('b_reset'))}</button></div></div>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: () => {
+        if (!requireFields(['bu_fy'])) return false;
+        const nb = {fy: val('bu_fy'), source: val('bu_src'), cats: $$('.bud-edit .bcat').map(el => {
+          const g = k => (el.querySelector(`[data-c=${k}]`) || {}).value || '';
+          return {k: el.dataset.cat, a: +g('a') || 0, n: {th: g('th').trim(), en: g('en').trim(), mnw: g('mnw').trim()},
+            lines: $$('.bline', el).map(r => { const q = k => r.querySelector(`[data-k=${k}]`).value.trim(); return {n: {th: q('th'), en: q('en'), mnw: q('mnw')}, a: +q('a') || 0, d: q('d')}; }).filter(l => l.n.th || l.n.en || l.n.mnw)};
+        })};
+        S.settings.budget = nb; save(); shareSet('budget'); audit('budget', nb.fy); renderView(); toast(T('saved'));
+      }}]});
+    App.budSum();
+  },
+  budSum() {
+    let tot = 0;
+    $$('.bud-edit .bcat').forEach(el => { const s = $$('.bline [data-k=a]', el).reduce((t, i) => t + (+i.value || 0), 0); el.querySelector('[data-sum]').textContent = money(s); tot += +el.querySelector('[data-c=a]').value || 0; });
+    const t = $('#bu_total'); if (t) t.textContent = money(tot);
+  },
+  budReset() {
+    if (!confirm(T('b_reset_q'))) return;
+    S.settings.budget = JSON.parse(JSON.stringify(DEFAULT_BUDGET)); save(); shareSet('budget'); document.querySelectorAll('.modal-wrap').forEach(e => e.remove()); renderView(); toast(T('saved'));
+  },
+  printBudget() {
+    const b = budget(), total = budTotal(b);
+    printSheet(T('nav_budget') + ' ' + b.fy, `<h2>${mm(T('nav_budget'))} · ${esc(T('b_fy'))} ${esc(b.fy)}</h2>
+      <table><thead><tr><th>${esc(T('b_line'))}</th><th>%</th><th>${esc(T('b_alloc'))}</th><th>${esc(T('b_used'))}</th><th>${esc(T('b_left'))}</th></tr></thead><tbody>
+      ${b.cats.map(c => { const u = budUse(c.k), a = Number(c.a) || 0; return `<tr><td><b>${mm(L(c.n))}</b>${c.n.mnw ? ` <span class="mnw">${esc(c.n.mnw)}</span>` : ''}</td><td>${total ? Math.round(a / total * 100) : 0}%</td><td>${money(a)}</td><td>${money(u.used)}</td><td>${money(a - u.used)}</td></tr>`
+        + (c.lines || []).map(l => `<tr><td style="padding-left:22px">${mm(L(l.n))}</td><td>${a ? Math.round((Number(l.a) || 0) / a * 100) : 0}%</td><td>${money(Number(l.a) || 0)}</td><td></td><td></td></tr>`).join(''); }).join('')}
+      <tr><td><b>${esc(T('total'))}</b></td><td>100%</td><td><b>${money(total)}</b></td><td><b>${money(b.cats.reduce((t, c) => t + budUse(c.k).used, 0))}</b></td><td></td></tr></tbody></table>
+      <div class="signs"><div>(............................)<br>${mm(role('treasurer'))}</div><div>(............................)<br>${mm(role('president'))}</div></div>`);
   },
   voidDoc(id) {
     const d = S.data.docs.find(x => x.id === id);
@@ -2251,7 +2502,7 @@ const App = {
   },
   payCalc() {
     const e = $('#p_left'); if (!e) return;
-    const b = payBudget({id: '', kind: 'PAY', amount: +val('r_amount') || 0, items: {cat: ($('input[name=p_cat]:checked') || {}).value, fy: PAY_FY}});
+    const b = payBudget({id: '', kind: 'PAY', amount: +val('r_amount') || 0, items: {cat: ($('input[name=p_cat]:checked') || {}).value, fy: payFY()}});
     if (!b) { e.textContent = ''; return; }
     e.classList.toggle('bad', b.after < 0);
     e.innerHTML = `${esc(T('b_approved'))} <b>${money(b.alloc)}</b> · ${esc(T('b_before'))} <b>${money(b.before)}</b> · ${esc(T(b.after < 0 ? 'over_budget' : 'b_after'))} <b>${money(b.after)}</b>`;
@@ -2289,7 +2540,7 @@ const App = {
     } else {
       const ck = n => ($(`input[name=${n}]:checked`) || {}).value || '';
       r.code = val('r_rel'); r.objective = r.code.slice(0, 2);
-      r.items = {fy: PAY_FY, dept: val('p_dept'), payee: val('p_payee'), phone: val('p_phone'), sup: val('p_sup'), contact: val('p_contact'),
+      r.items = {fy: payFY(), dept: val('p_dept'), payee: val('p_payee'), phone: val('p_phone'), sup: val('p_sup'), contact: val('p_contact'),
         cat: ck('p_cat'), method: ck('p_method'), budget: val('p_budget'), voucher: val('p_voucher'), ptype: ck('p_type'), need: val('p_need'), pri: ck('p_pri'),
         docs: $$('input[name=p_docs]:checked').map(x => x.value), docOther: val('p_docother'), paid: null};
     }
@@ -2327,6 +2578,7 @@ const App = {
       acts.push({label: `${ICON.stamp} ${mm(T('approve'))}`, cls: 'primary', on: (_, __, btn) => App.approveReq(r, btn)});
     }
     acts.unshift({label: `${ICON.print} ${esc(T('print'))}`, on: () => { App.printRequest(id); return false; }});
+    if (ADMIN) acts.splice(1, 0, {label: `${ICON.edit} ${esc(T('edit'))}`, on: () => setTimeout(() => App.editReq(id), 220)}, {label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: () => setTimeout(() => App.delReq(id), 220)});
     modal({title: `${badge(r.kind)} ${mm(r.title)}`, size: 'lg', body: `
       ${r.sample ? `<div class="banner">${ICON.info}<span>${esc(T('sample'))}</span></div>` : ''}
       <dl class="kv">
@@ -2346,6 +2598,7 @@ const App = {
   openPay(r) {
     const p = payOf(r), b = payBudget(r), paid = p.paid;
     const acts = [{label: `${ICON.print} ${esc(T('print'))}`, on: () => { App.printRequest(r.id); return false; }}];
+    if (ADMIN) acts.push({label: `${ICON.edit} ${esc(T('edit'))}`, on: () => setTimeout(() => App.editReq(r.id), 220)}, {label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: () => setTimeout(() => App.delReq(r.id), 220)});
     if (ADMIN && r.status === 'submitted') acts.push({label: esc(T('start_review')), on: () => App.reqStep(r, 'review')});
     if (ADMIN && (r.status === 'submitted' || r.status === 'review')) {
       acts.push({label: esc(T('return_req')), cls: 'danger', on: () => setTimeout(() => App.returnReq(r), 220)});
@@ -2689,7 +2942,8 @@ const App = {
       <div class="kv">${kv('subject', d.subject)}${isIn ? kv('from', d.from) + kv('their_no', d.theirNo) + kv('their_date', d.theirDate ? fmtDate(d.theirDate) : '') + kv('assigned', role(d.assigned)) : kv('to', d.to)}
         ${kv('ref', d.ref)}${kv('project_code', d.code)}${mt ? kv('meeting_kind', T(mt.kind)) + kv('present', `${mt.present}/${mt.total}${mt.total ? ` (${Math.round(mt.present / mt.total * 100)}%)` : ''}`) : ''}
         ${(d.links || []).length ? `<b>${esc(T('links'))}</b><span>${d.links.map(l => esc(l.label ? l.label + ': ' + l.url : l.url)).join('<br>')}</span>` : ''}${kv('note', d.note)}</div>`;
-    if (!isIn) inner += `<div class="body">${esc(T('body_space'))}</div><div class="sign">(......................................................)<br>${mm(role(d.signer))}</div>`;
+    if (d.body && isIn) inner += `<div class="body txt" style="min-height:0">${mm(d.body)}</div>`;
+    if (!isIn) inner += `${d.body ? `<div class="body txt">${mm(d.body)}</div>` : `<div class="body">${esc(T('body_space'))}</div>`}<div class="sign">(......................................................)<br>${mm(role(d.signer))}</div>`;
     else inner += `<div class="signs"><div>(............................)<br>${mm(role('office'))}</div><div>(............................)<br>${mm(role(d.assigned))}</div></div>`;
     printSheet(d.no, inner);
   },
@@ -2741,10 +2995,10 @@ const App = {
         ${row('pay_sup', v(p.sup), 'pay_contact', v(p.contact))}
         ${sec('pay_s2')}
         ${row('pay_purpose', v(r.title), 'pay_amount', `<b>${thb(r.amount)}</b>`)}
-        ${row('pay_cat', opt(PAY_CATS.map(c => c.k), 'cat_', p.cat), 'pay_method', opt(['bank', 'cash'], 'pm_', p.method))}
+        ${row('pay_cat', opt(payCats().map(c => c.k), 'cat_', p.cat), 'pay_method', opt(['bank', 'cash'], 'pm_', p.method))}
         ${row('pay_budget', v(p.budget), 'pay_voucher', v(p.voucher))}
         ${row('pay_plan', r.code ? `<span class="mono">${esc(r.code)}</span>` : '', 'pay_type', opt(PAY_TYPES, 'pt_', p.ptype))}
-        <tr><td colspan="4"><small>${li('pay_annual')} – ${PAY_CATS.map(c => `<span class="mnw">${esc(c.line)}</span> ${money(c.a)}`).join(' | ')} THB</small></td></tr>
+        <tr><td colspan="4"><small>${li('pay_annual')} – ${payCats().map(c => `<span class="mnw">${esc(c.line)}</span> ${money(c.a)}`).join(' | ')} THB</small></td></tr>
         ${sec('pay_s3')}
         ${row('b_approved', b ? thb(b.alloc) : '', 'b_before', b ? thb(b.before) : '')}
         ${row('b_this', thb(r.amount), 'b_after', b ? thb(b.after) : '')}
