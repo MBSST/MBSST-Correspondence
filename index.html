@@ -494,7 +494,7 @@ const LS_KEY = 'mbsst_saraban_v1';
 
 /* ---------- CONFIG: วาง Web app URL จาก Apps Script ตรงนี้ก่อนเผยแพร่บน GitHub Pages ---------- */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbyF0Dtytf92ZgZuC3x7s3M9-P4wH0D4pbHqDmCd1M2P4oYvAeolHjO7l0zU-_1N2WPr/exec'   // เช่น 'https://script.google.com/macros/s/XXXX/exec' · เว้นว่าง = โหมดสาธิต (เก็บในเบราว์เซอร์)
+  API_URL: 'https://script.google.com/macros/s/AKfycbxJIB5c2oTVnB1XFi8DqvgA1JOtEhddvnXpdz7ysBPsuEiFcgY0P-lx-nqWDoETgvLP/exec'   // เช่น 'https://script.google.com/macros/s/XXXX/exec' · เว้นว่าง = โหมดสาธิต (เก็บในเบราว์เซอร์)
 };
 const API = CONFIG.API_URL || (() => { try { return localStorage.getItem('mbsst_api') || ''; } catch (e) { return ''; } })();
 const KEY = {club: '', admin: ''};
