@@ -169,6 +169,7 @@ html.no-anim *,html.no-anim *::before{animation:none!important;transition:none!i
 .list-row:hover{background:var(--surface-2)}
 .list-row .grow{flex:1;min-width:0}
 .list-row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mem-year{margin:22px 0 10px;display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding-bottom:6px}
 .bud-cat{margin-bottom:16px}.bud-cat h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .bud-meter{height:12px;border-radius:7px;background:var(--surface-2);overflow:hidden;margin:10px 0 6px;display:flex}
 .bud-meter i{display:block;height:100%;background:var(--primary)}.bud-meter i.pend{background:var(--accent);opacity:.7}.bud-meter.over i{background:var(--bad,#c0392b)}
@@ -867,6 +868,8 @@ const STR_ROWS = [
  ['rec_pay','','บันทึกการจ่ายเงิน','Record payment',''],
  ['st_paid','','จ่ายเงินแล้ว','Paid',''],
  ['mem_add','','เพิ่มสมาชิก','Add member',''],
+ ['mem_gen','','รุ่นปี','Class of',''],
+ ['mem_unit','','รูป','members',''],
  ['mem_no','စၟတ်ဂၞန်','เลขสมาชิก','Member no.',1],
  ['name','ယၟု','ชื่อ','Name',1],
  ['name_alt','','ชื่อ (ภาษาอื่น)','Name (other script)',''],
@@ -1922,6 +1925,13 @@ function viewMembers() {
   const f = UI.mem;
   const list = S.data.members.filter(m => (ADMIN || m.status !== 'pending') && (!f.st || m.status === f.st) &&
     (!f.q || [m.name, m.nameAlt, m.no, role(m.role), m.univ].join(' ').toLowerCase().includes(f.q.toLowerCase())));
+  // เรียงตามรหัสปีของสมาชิก (เลข 8 หลัก) · ผู้ที่ยังไม่มีเลขเรียงตามปีที่เข้า
+  const yr = m => (/^\d{8}$/.test(m.no || '') ? m.no.slice(0, 4) : String(m.joined || '').slice(0, 4)) || '—';
+  const key = m => /^\d{8}$/.test(m.no || '') ? m.no : yr(m) + '9999' + (m.name || '');
+  list.sort((x, y) => key(x).localeCompare(key(y)));
+  const groups = [];
+  list.forEach(m => { const g = groups[groups.length - 1]; if (g && g.y === yr(m)) g.items.push(m); else groups.push({y: yr(m), items: [m]}); });
+  let gi = 0;
   const sts = ['', 'active', 'alumni', 'friend', 'advisor'].concat(ADMIN ? ['pending'] : []);
   return `<div class="view">
     <div class="page-head"><h2>${ICON.users.replace('<svg', '<svg width="26"')} ${mm(T('nav_members'))}</h2><span class="spacer"></span>
@@ -1930,7 +1940,7 @@ function viewMembers() {
       ${ADMIN ? `<button class="btn" onclick="App.editMember()">${ICON.users} ${esc(T('mem_add'))}</button>` : ''}</div>
     <div class="toolbar"><div class="search">${ICON.search}<input class="inp" placeholder="${esc(T('search'))}" value="${esc(f.q)}" oninput="App.memSet('q',this.value)"></div>
       ${sts.map(s => `<button class="btn sm ${f.st === s ? 'primary' : ''}" onclick="App.memSet('st','${s}')">${mm(s ? T('ms_' + s) : T('all'))}</button>`).join('')}</div>
-    ${list.length ? `<div class="mem-grid stagger">${list.map((m, i) => `
+    ${list.length ? groups.map(g => `<h3 class="mem-year">${esc(T('mem_gen'))} ${esc(g.y)} <span class="muted small">· ${g.items.length} ${esc(T('mem_unit'))}</span></h3><div class="mem-grid stagger">${g.items.map(m => { const i = Math.min(gi++, 30); return `
       <div class="card mcard" style="--i:${i}" onclick="location.hash='member/${m.id}'" role="button" tabindex="0">
         ${avatarHTML(m)}
         <div style="min-width:0">
@@ -1939,7 +1949,7 @@ function viewMembers() {
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px"><span class="chip">${mm(role(m.role))}</span><span class="chip ${m.status === 'pending' ? 'admin-on' : ''}">${mm(T('ms_' + m.status))}</span></div>
           ${m.no ? `<div class="small muted mono" style="margin-top:4px">${esc(m.no)}</div>` : ''}
           ${m.univ ? `<div class="small muted">${mm(m.univ)}</div>` : ''}
-        </div></div>`).join('')}</div>` : `<div class="card empty">${esc(T('no_data'))}</div>`}
+        </div></div>`; }).join('')}</div>`).join('') : `<div class="card empty">${esc(T('no_data'))}</div>`}
   </div>`;
 }
 function viewMemberPage() {
