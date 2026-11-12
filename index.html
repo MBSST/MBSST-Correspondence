@@ -967,6 +967,8 @@ const STR_ROWS = [
  ['del_doc_note','','ลบเลขนี้ออกจากทะเบียนถาวร (กู้คืนไม่ได้) · ถ้าต้องการเก็บประวัติไว้ ให้ใช้ “ยกเลิกเลขนี้” แทน','Removes this number from the register permanently (cannot be undone). To keep a record, use “Void this number” instead.',''],
  ['del_req_note','','ลบคำขอนี้ถาวร (กู้คืนไม่ได้) · เลขหนังสือที่ออกไปแล้วยังอยู่ในทะเบียน','Deletes this request permanently (cannot be undone). Any issued number stays in the register.',''],
  ['edited_by_admin','','ผู้ดูแลแก้ไข','edited by admin',''],
+ ['pay_lines','','รายการค่าใช้จ่าย','Expense items',''],
+ ['pay_lines_hint','','เพิ่ม แก้ หรือลบรายการได้ · เมื่อมีรายการ ระบบรวมจำนวนเงินให้อัตโนมัติ','Add, edit or remove items · the amount is totalled automatically',''],
  ['nav_budget','','งบประมาณและการเงิน','Budget & finance',''],
  ['b_fy','','ปีงบประมาณ','Fiscal year',''],
  ['b_total','','งบประมาณทั้งปี','Annual budget',''],
@@ -1116,6 +1118,11 @@ function budUse(k) {
 const PAY_TYPES = ['full','adv','reimb'];
 const PAY_DOCS = ['voucher','bank','quote','minutes','other'];
 const REQ_LABEL = {PRJ:'req_prj',BUD:'req_bud',PAY:'req_pay'};
+/** รายการค่าใช้จ่ายในคำขอเบิกจ่าย: [{name, qty, price}] */
+function readPayLines() {
+  return $$('#p_lines tr').map(tr => ({name: tr.querySelector('[data-k=name]').value.trim(), qty: +tr.querySelector('[data-k=qty]').value || 0, price: +tr.querySelector('[data-k=price]').value || 0})).filter(l => l.name);
+}
+const payLinesOf = p => Array.isArray(p && p.lines) ? p.lines : [];
 const payOf = r => (r && r.kind === 'PAY' && r.items && !Array.isArray(r.items)) ? r.items : {};
 function payBudget(r) {
   const p = payOf(r), c = payCats().find(x => x.k === p.cat);
@@ -1436,6 +1443,9 @@ function payFormHTML(prjCodes) {
     <div class="row2">${fld(mm(T('pay_sup')), '<input class="inp" id="p_sup">')}${fld(mm(T('pay_contact')), '<input class="inp" id="p_contact" placeholder="LINE / Facebook / e-mail">')}</div>
     <div class="sec-h">${mm(T('pay_s2'))}</div>
     ${fld(mm(T('pay_purpose')), '<input class="inp" id="r_title">', 1)}
+    <div class="fld"><span>${mm(T('pay_lines'))}</span><table class="items"><thead><tr><th>${esc(T('item'))}</th><th style="width:80px">${esc(T('qty'))}</th><th style="width:110px">${esc(T('price'))}</th><th style="width:100px">${esc(T('total'))}</th><th style="width:40px"></th></tr></thead><tbody id="p_lines"></tbody>
+      <tfoot><tr><td colspan="3" style="text-align:right"><b>${esc(T('total'))}</b></td><td><b id="p_lsum">0</b></td><td></td></tr></tfoot></table>
+      <div class="inline" style="flex-wrap:wrap"><button type="button" class="btn ghost sm" onclick="App.addPayLine()">${ICON.plus} ${esc(T('add_item'))}</button><span class="small muted">${esc(T('pay_lines_hint'))}</span></div></div>
     <div class="row2">${fld(mm(T('pay_amount')), '<input class="inp" type="number" min="0" step="0.01" id="r_amount" oninput="App.payCalc()">', 1)}
       <div class="fld"><span>${mm(T('pay_method'))}</span>${radios('p_method', ['bank', 'cash'], 'pm_', 'bank')}</div></div>
     <div class="fld"><span>${mm(T('pay_cat'))}</span><div onchange="App.payCalc()">${radios('p_cat', payCats().map(c => c.k), 'cat_', 'edu')}</div><div class="budget-pv" id="p_left"></div></div>
@@ -2384,6 +2394,7 @@ const App = {
   },
   editReq(id) {
     const r = S.data.requests.find(x => x.id === id); if (!r) return;
+    if (r.kind === 'PAY') return App.editPay(id);
     const p = payOf(r);
     modal({title: `${ICON.edit.replace('<svg', '<svg width="20"')} ${badge(r.kind)} ${mm(r.title)}`, size: 'lg', body: `
       ${fld(T('subject'), `<input class="inp" id="q_title" value="${esc(r.title)}">`, 1)}
@@ -2517,6 +2528,66 @@ const App = {
     e.classList.toggle('bad', b.after < 0);
     e.innerHTML = `${esc(T('b_approved'))} <b>${money(b.alloc)}</b> · ${esc(T('b_before'))} <b>${money(b.before)}</b> · ${esc(T(b.after < 0 ? 'over_budget' : 'b_after'))} <b>${money(b.after)}</b>`;
   },
+  addPayLine(l = {name: '', qty: 1, price: 0}) {
+    const tb = $('#p_lines'); if (!tb) return;
+    tb.insertAdjacentHTML('beforeend', `<tr><td><input class="inp" data-k="name" value="${esc(l.name)}" oninput="App.sumPayLines()"></td><td><input class="inp" type="number" min="0" step="any" data-k="qty" value="${esc(l.qty)}" oninput="App.sumPayLines()"></td><td><input class="inp" type="number" min="0" step="0.01" data-k="price" value="${esc(l.price)}" oninput="App.sumPayLines()"></td><td class="mono" data-k="tot">0</td><td><button type="button" class="icon-btn" title="${esc(T('delete'))}" onclick="this.closest('tr').remove();App.sumPayLines()">${ICON.x}</button></td></tr>`);
+    App.sumPayLines();
+  },
+  sumPayLines() {
+    const rows = $$('#p_lines tr'); let s = 0, named = 0;
+    rows.forEach(tr => { const t = (+tr.querySelector('[data-k=qty]').value || 0) * (+tr.querySelector('[data-k=price]').value || 0); tr.querySelector('[data-k=tot]').textContent = money(t); if (tr.querySelector('[data-k=name]').value.trim()) { s += t; named++; } });
+    const e = $('#p_lsum'); if (e) e.textContent = money(s);
+    const a = $('#r_amount');
+    if (a) { a.readOnly = named > 0; if (named > 0) a.value = Math.round(s * 100) / 100; }
+    App.payCalc();
+  },
+  /** แก้ไขคำขอเบิกจ่าย (PAY) ทั้งฟอร์ม — เฉพาะผู้ดูแล */
+  editPay(id) {
+    const r = S.data.requests.find(x => x.id === id); if (!r) return;
+    const p = payOf(r);
+    UI.files = [];
+    const prjCodes = [...new Set(S.data.requests.filter(x => x.kind === 'PRJ').map(x => x.code))];
+    App._reqModal = modal({title: `${ICON.edit.replace('<svg', '<svg width="20"')} ${badge('PAY')} ${mm(r.title)}`, size: 'lg', body: payFormHTML(prjCodes) + `
+      <div class="row2">${fld(T('number'), `<input class="inp mono" id="q_docno" list="dl-nos" value="${esc(r.docNo)}">`)}${fld(T('status'), `<select class="inp" id="q_st">${['submitted','review','approved','returned'].map(x => `<option value="${x}" ${r.status === x ? 'selected' : ''}>${esc(T('st_' + x))}</option>`).join('')}</select>`)}</div>${datalists()}`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: (_, close, btn) => {
+        if (!requireFields(['r_prop', 'p_payee', 'r_title', 'r_amount', 'r_desc'])) return false;
+        const ck = n => ($(`input[name=${n}]:checked`) || {}).value || '';
+        const o = Object.assign({}, r, {title: val('r_title'), proposer: val('r_prop'), amount: +val('r_amount') || 0, desc: val('r_desc'), links: readLinks('r_links'),
+          code: val('r_rel'), objective: val('r_rel').slice(0, 2), docNo: val('q_docno'),
+          items: Object.assign({}, p, {dept: val('p_dept'), payee: val('p_payee'), phone: val('p_phone'), sup: val('p_sup'), contact: val('p_contact'),
+            cat: ck('p_cat'), method: ck('p_method'), budget: val('p_budget'), voucher: val('p_voucher'), ptype: ck('p_type'), need: val('p_need'), pri: ck('p_pri'),
+            docs: $$('input[name=p_docs]:checked').map(x => x.value), docOther: val('p_docother'), lines: readPayLines()})});
+        const st = val('q_st');
+        o.history = (r.history || []).concat([{at: todayISO(), st: st, c: T('edited_by_admin')}]);
+        o.status = st;
+        btn.classList.add('loading');
+        (async () => {
+          try {
+            o.files = (r.files || []).slice();
+            if (API) for (const f of UI.files) {
+              if (!f.file) continue;
+              toast(T('uploading') + ' ' + f.name);
+              const j = await api('upload', {name: f.name, mime: f.file.type || 'application/octet-stream', data: await fileToB64(f.file)});
+              o.files.push({name: j.file.name, size: j.file.size, url: j.file.url});
+            } else o.files = o.files.concat(UI.files.map(f => ({name: f.name, size: f.size})));
+            Object.assign(r, await persist('requests', o)); audit('edit', 'PAY ' + r.title); save(); close(); renderView(); toast(T('saved'));
+          } catch (e) { btn.classList.remove('loading'); apiErr(e); }
+        })();
+        return false;
+      }}]});
+    // เติมค่าเดิมลงฟอร์ม
+    const setv = (i, v) => { const e = document.getElementById(i); if (e && v != null) e.value = v; };
+    const setr = (n, v) => { const e = $(`input[name=${n}][value="${v}"]`); if (e) e.checked = true; };
+    setv('r_prop', r.proposer); setv('r_title', r.title); setv('r_amount', r.amount); setv('r_desc', r.desc); setv('r_rel', r.code);
+    ['dept','payee','phone','sup','contact','budget','voucher','need'].forEach(k => setv('p_' + k, p[k]));
+    setv('p_docother', p.docOther);
+    setr('p_cat', p.cat); setr('p_method', p.method); setr('p_type', p.ptype); setr('p_pri', p.pri);
+    $$('input[name=p_docs]').forEach(x => x.checked = (p.docs || []).includes(x.value));
+    const le = $('#r_links'); if (le && r.links && r.links.length) le.innerHTML = r.links.map(linkRow).join('');
+    payLinesOf(p).forEach(l => App.addPayLine(l));
+    App.bindDrop(); App.sumPayLines();
+    const fl = $('#r_files'); if (fl && (r.files || []).length) fl.insertAdjacentHTML('beforebegin', `<div class="small muted">${esc(T('attachments'))}: ${r.files.map(f => esc(f.name)).join(' · ')}</div>`);
+  },
   switchReq(k) { if (App._reqModal) App._reqModal.close(); setTimeout(() => App.newRequest(k), 210); },
   reqCode() { const o = ($('input[name=r_obj]:checked') || {}).value || '02'; const c = projCode(o, +val('r_prog') || 1, val('r_start')); const e = $('#r_code'); if (e) e.textContent = c || '—'; },
   addItem() {
@@ -2552,7 +2623,7 @@ const App = {
       r.code = val('r_rel'); r.objective = r.code.slice(0, 2);
       r.items = {fy: payFY(), dept: val('p_dept'), payee: val('p_payee'), phone: val('p_phone'), sup: val('p_sup'), contact: val('p_contact'),
         cat: ck('p_cat'), method: ck('p_method'), budget: val('p_budget'), voucher: val('p_voucher'), ptype: ck('p_type'), need: val('p_need'), pri: ck('p_pri'),
-        docs: $$('input[name=p_docs]:checked').map(x => x.value), docOther: val('p_docother'), paid: null};
+        docs: $$('input[name=p_docs]:checked').map(x => x.value), docOther: val('p_docother'), lines: readPayLines(), paid: null};
     }
     const b = btn.getBoundingClientRect();
     btn.classList.add('loading');
@@ -2624,7 +2695,9 @@ const App = {
         <dt>${esc(T('status'))}</dt><dd>${stChip(r.status)}${paid ? ' ' + stChip('paid') : ''}${r.docNo ? ` · <a href="javascript:void 0" onclick="App.openByNo('${esc(r.docNo)}')" class="mono">${esc(r.docNo)}</a>` : ''}</dd>
         ${dd('pay_reqdate', fmtDate((r.history[0] || {}).at))}${dd('pay_need', p.need ? fmtDate(p.need) : '')}${dd('pay_pri', p.pri ? mm(T('pri_' + p.pri)) : '')}
         ${sec('pay_s1')}${dd('pay_requester', mm(r.proposer))}${dd('pay_dept', mm(p.dept))}${dd('pay_payee', mm(p.payee))}${dd('pay_phone', esc(p.phone))}${dd('pay_sup', mm(p.sup))}${dd('pay_contact', esc(p.contact))}
-        ${sec('pay_s2')}${dd('pay_purpose', mm(r.title))}${dd('pay_amount', `<b>${money(r.amount)}</b>`)}${dd('pay_cat', p.cat ? mm(T('cat_' + p.cat)) : '')}${dd('pay_method', p.method ? esc(T('pm_' + p.method)) : '')}
+        ${sec('pay_s2')}${dd('pay_purpose', mm(r.title))}
+        ${payLinesOf(p).length ? `<dt>${mm(T('pay_lines'))}</dt><dd><div class="tbl-wrap"><table><thead><tr><th>${esc(T('item'))}</th><th>${esc(T('qty'))}</th><th>${esc(T('price'))}</th><th>${esc(T('total'))}</th></tr></thead><tbody>${payLinesOf(p).map(l => `<tr><td>${mm(l.name)}</td><td>${l.qty}</td><td class="mono">${money(l.price)}</td><td class="mono">${money(l.qty * l.price)}</td></tr>`).join('')}</tbody></table></div></dd>` : ''}
+        ${dd('pay_amount', `<b>${money(r.amount)}</b>`)}${dd('pay_cat', p.cat ? mm(T('cat_' + p.cat)) : '')}${dd('pay_method', p.method ? esc(T('pm_' + p.method)) : '')}
         ${dd('pay_budget', mm(p.budget))}${dd('pay_voucher', esc(p.voucher))}${dd('pay_plan', r.code ? `<span class="mono">${esc(r.code)}</span>` : '')}${dd('pay_type', p.ptype ? mm(T('pt_' + p.ptype)) : '')}
         ${b ? `${sec('pay_s3')}${dd('b_approved', money(b.alloc))}${dd('b_before', money(b.before))}${dd('b_this', money(b.amt))}
           <dt>${mm(T('b_after'))}</dt><dd><b style="${b.after < 0 ? 'color:var(--bad)' : ''}">${money(b.after)}</b> · ${mm(T('bc_' + b.check))}</dd>` : ''}
@@ -3005,6 +3078,7 @@ const App = {
         ${row('pay_sup', v(p.sup), 'pay_contact', v(p.contact))}
         ${sec('pay_s2')}
         ${row('pay_purpose', v(r.title), 'pay_amount', `<b>${thb(r.amount)}</b>`)}
+        ${payLinesOf(p).length ? `<tr><td>${lb('pay_lines')}</td><td colspan="3"><table class="lines" style="width:100%;border-collapse:collapse"><tr><th style="text-align:left">#</th><th style="text-align:left">${esc(T('item'))}</th><th>${esc(T('qty'))}</th><th>${esc(T('price'))}</th><th>${esc(T('total'))}</th></tr>${payLinesOf(p).map((l, i) => `<tr><td>${i + 1}</td><td>${v(l.name)}</td><td style="text-align:center">${l.qty}</td><td style="text-align:right">${money(l.price)}</td><td style="text-align:right">${money(l.qty * l.price)}</td></tr>`).join('')}<tr><td colspan="4" style="text-align:right"><b>${esc(T('total'))}</b></td><td style="text-align:right"><b>${money(payLinesOf(p).reduce((t, l) => t + l.qty * l.price, 0))}</b></td></tr></table></td></tr>` : ''}
         ${row('pay_cat', opt(payCats().map(c => c.k), 'cat_', p.cat), 'pay_method', opt(['bank', 'cash'], 'pm_', p.method))}
         ${row('pay_budget', v(p.budget), 'pay_voucher', v(p.voucher))}
         ${row('pay_plan', r.code ? `<span class="mono">${esc(r.code)}</span>` : '', 'pay_type', opt(PAY_TYPES, 'pt_', p.ptype))}
