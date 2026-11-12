@@ -507,7 +507,7 @@ const myRole = () => API ? ROLE : (ADMIN ? 'admin' : SELF ? 'member' : 'public')
 const can = r => RANK[myRole()] >= RANK[r];
 let CONNECTED = false, busyN = 0;
 const TBL = {docs: 'Docs', requests: 'Requests', members: 'Members', activities: 'Activities', history: 'History'};
-const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai','budget'];
+const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai','budget','forms'];
 async function api(action, payload = {}, key) {
   busyN++; syncUI();
   try {
@@ -968,6 +968,27 @@ const STR_ROWS = [
  ['del_req_note','','ลบคำขอนี้ถาวร (กู้คืนไม่ได้) · เลขหนังสือที่ออกไปแล้วยังอยู่ในทะเบียน','Deletes this request permanently (cannot be undone). Any issued number stays in the register.',''],
  ['edited_by_admin','','ผู้ดูแลแก้ไข','edited by admin',''],
  ['pay_lines','','รายการค่าใช้จ่าย','Expense items',''],
+ ['set_forms','','แบบฟอร์มคำขอ','Request forms',''],
+ ['f_note','','ปรับฟอร์มยื่นคำขอ PRJ / BUD / PAY: เปลี่ยนชื่อช่อง ซ่อนช่องที่ไม่ใช้ และเพิ่มช่องใหม่ · ช่องที่ระบบต้องใช้ซ่อนไม่ได้ · กด “บันทึก” แล้วกด “ดูตัวอย่างฟอร์ม” เพื่อตรวจ','Customise the PRJ / BUD / PAY request forms: rename fields, hide unused ones and add new ones · required system fields cannot be hidden · Save, then Preview to check',''],
+ ['f_builtin','','ช่องในฟอร์ม','Form fields',''],
+ ['f_custom','','ช่องที่เพิ่มเอง','Added fields',''],
+ ['f_label','','ชื่อช่อง','Field label',''],
+ ['f_rename','','ชื่อใหม่ (เว้นว่าง = ชื่อเดิม)','New label (empty = default)',''],
+ ['f_show','','แสดง','Show',''],
+ ['f_core','','จำเป็น','Required',''],
+ ['f_type','','ชนิด','Type',''],
+ ['f_options','','ตัวเลือก','Options',''],
+ ['f_options_ph','','สำหรับชนิดตัวเลือก คั่นด้วย ,','For choice type, separate with ,',''],
+ ['f_required','','ต้องกรอก','Required',''],
+ ['f_add','','เพิ่มช่อง','Add field',''],
+ ['f_preview','','ดูตัวอย่างฟอร์ม','Preview form',''],
+ ['f_extra','','ข้อมูลเพิ่มเติม','Additional information',''],
+ ['f_gone','','ช่องที่ลบแล้ว','deleted field',''],
+ ['ft_text','','ข้อความสั้น','Short text',''],
+ ['ft_textarea','','ข้อความยาว','Long text',''],
+ ['ft_number','','ตัวเลข','Number',''],
+ ['ft_date','','วันที่','Date',''],
+ ['ft_select','','ตัวเลือก','Choice',''],
  ['pay_lines_hint','','เพิ่ม แก้ หรือลบรายการได้ · เมื่อมีรายการ ระบบรวมจำนวนเงินให้อัตโนมัติ','Add, edit or remove items · the amount is totalled automatically',''],
  ['nav_budget','','งบประมาณและการเงิน','Budget & finance',''],
  ['b_fy','','ปีงบประมาณ','Fiscal year',''],
@@ -1118,6 +1139,51 @@ function budUse(k) {
 const PAY_TYPES = ['full','adv','reimb'];
 const PAY_DOCS = ['voucher','bank','quote','minutes','other'];
 const REQ_LABEL = {PRJ:'req_prj',BUD:'req_bud',PAY:'req_pay'};
+/* ---------- แบบฟอร์มคำขอที่ผู้ดูแลปรับได้: เปลี่ยนชื่อช่อง ซ่อนช่อง และเพิ่มช่องเอง ---------- */
+const FORM_KINDS = ['PRJ', 'BUD', 'PAY'];
+const FORM_CORE = {PRJ: ['r_title', 'r_prop', 'r_start', 'r_code'], BUD: ['r_title', 'r_prop', 'r_rel', 'r_items', 'r_amount'], PAY: ['r_prop', 'p_payee', 'r_title', 'r_amount', 'r_desc', 'p_cat', 'p_lines']};
+const FIELD_TYPES = ['text', 'textarea', 'number', 'date', 'select'];
+const formCfg = kind => { const f = (S.settings.forms || {})[kind] || {}; return {over: f.over || {}, custom: Array.isArray(f.custom) ? f.custom : []}; };
+const fieldKey = f => { const el = f.querySelector('input[id]:not([type=file]),select[id],textarea[id]'), nm = f.querySelector('input[name]'), box = f.querySelector('tbody[id],div[id]'); return (el && el.id) || (nm && nm.name) || (box && box.id) || ''; };
+/** ช่องเดิมของฟอร์ม (อ่านจาก HTML ของฟอร์มจริง) */
+function formFields(kind) {
+  const box = document.createElement('div');
+  box.innerHTML = reqFormHTML(kind, []);
+  const seen = new Set();
+  return [...box.querySelectorAll('.fld')].map(f => {
+    const key = fieldKey(f), sp = f.querySelector(':scope > span');
+    return {key, label: sp ? sp.textContent.replace(/\*\s*$/, '').trim() : key};
+  }).filter(x => x.key && !seen.has(x.key) && seen.add(x.key));
+}
+const cfLabel = c => L(c.label || {}) || c.key;
+function cfInput(c) {
+  const id = 'cf_' + c.key;
+  if (c.type === 'textarea') return `<textarea class="inp" id="${id}" rows="3"></textarea>`;
+  if (c.type === 'select') return `<select class="inp" id="${id}"><option value=""></option>${String(c.options || '').split(/[,\n]/).map(o => o.trim()).filter(Boolean).map(o => `<option>${esc(o)}</option>`).join('')}</select>`;
+  return `<input class="inp" id="${id}" type="${c.type === 'number' ? 'number' : c.type === 'date' ? 'date' : 'text'}"${c.type === 'number' ? ' step="any"' : ''}>`;
+}
+/** ใช้การตั้งค่ากับฟอร์มที่เปิดอยู่: เปลี่ยนชื่อ ซ่อน และแทรกช่องที่เพิ่มเอง */
+function applyForm(kind, root) {
+  const cfg = formCfg(kind), core = FORM_CORE[kind] || [];
+  root.querySelectorAll('.modal-body .fld').forEach(f => {
+    const key = fieldKey(f), o = cfg.over[key]; if (!o) return;
+    const sp = f.querySelector(':scope > span');
+    if (sp && o.label && L(o.label)) sp.innerHTML = mm(L(o.label)) + (sp.querySelector('i') ? '<i>*</i>' : '');
+    if (o.hidden && !core.includes(key)) f.style.display = 'none';
+  });
+  if (!cfg.custom.length) return;
+  const html = `<div class="sec-h">${mm(T('f_extra'))}</div>` + cfg.custom.map(c => fld(mm(cfLabel(c)), cfInput(c), c.req)).join('');
+  const att = root.querySelector('#r_drop'), anchor = att && att.closest('.fld');
+  if (anchor) anchor.insertAdjacentHTML('beforebegin', html); else root.querySelector('.modal-body').insertAdjacentHTML('beforeend', html);
+}
+const extraReq = kind => formCfg(kind).custom.filter(c => c.req).map(c => 'cf_' + c.key);
+const readExtra = kind => Object.fromEntries(formCfg(kind).custom.map(c => [c.key, val('cf_' + c.key)]).filter(([, v]) => v !== ''));
+/** ข้อมูลในช่องที่เพิ่มเอง สำหรับหน้ารายละเอียดและหน้าพิมพ์ */
+function extraRows(r) {
+  const cfg = formCfg(r.kind), ex = r.extra || {};
+  return Object.keys(ex).filter(k => ex[k] !== '' && ex[k] != null).map(k => { const c = cfg.custom.find(x => x.key === k); return {label: c ? cfLabel(c) : k + ' (' + T('f_gone') + ')', value: String(ex[k])}; });
+}
+
 /** รายการค่าใช้จ่ายในคำขอเบิกจ่าย: [{name, qty, price}] */
 function readPayLines() {
   return $$('#p_lines tr').map(tr => ({name: tr.querySelector('[data-k=name]').value.trim(), qty: +tr.querySelector('[data-k=qty]').value || 0, price: +tr.querySelector('[data-k=price]').value || 0})).filter(l => l.name);
@@ -1198,7 +1264,7 @@ function defaults() {
     settings: {lang:'th', mode:'auto', primary:'#b3191f', accent:'#d9a521', radius:14, fs:16, anim:true,
       fonts:{mnw:'Padauk', th:'Noto Sans Thai', en:'Inter'}, logo:'', texts:{}, pin:'MBSST2026',
       links:[{label:'Email MBSST', url:'mailto:mbsst2551@gmail.com'}], sheetsUrl:'',
-      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}, budget: JSON.parse(JSON.stringify(DEFAULT_BUDGET))},
+      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}, budget: JSON.parse(JSON.stringify(DEFAULT_BUDGET)), forms: {}},
     data: seed()
   };
 }
@@ -1432,6 +1498,26 @@ const linksHTML = ls => (ls || []).length ? ls.map(l => `<div><a href="${esc(saf
 const tri = (pfx, o = {}) => `<div class="row3">${['mnw','th','en'].map(l => fld(LANG_LABEL[l], `<input class="inp ${l === 'mnw' ? 'mnw' : ''}" id="${pfx}_${l}" value="${esc(o[l] || '')}">`)).join('')}</div>`;
 const readTri = pfx => ({mnw: val(pfx + '_mnw'), th: val(pfx + '_th'), en: val(pfx + '_en')});
 const radios = (name, keys, pre, cur) => `<div class="chk-row">${keys.map(k => `<label class="chk"><input type="radio" name="${name}" value="${k}" ${k === cur ? 'checked' : ''}> ${mm(T(pre + k))}</label>`).join('')}</div>`;
+function reqFormHTML(kind, prjCodes) {
+  const y = curYear();
+  return (kind === 'PAY' ? payFormHTML(prjCodes) : `
+      ${fld(T('subject'), `<input class="inp" id="r_title" placeholder="${esc(T('subject_ph'))}">`, 1)}
+      <div class="row2">${fld(T('proposer'), '<input class="inp" id="r_prop">', 1)}${fld(T('amount'), `<input class="inp" type="number" min="0" id="r_amount" ${kind === 'BUD' ? 'readonly' : ''}>`)}</div>
+      ${kind === 'PRJ' ? `
+        <div class="fld"><span>${mm(T('objective'))}</span><div class="obj-grid">${OBJECTIVES.map(o => `<label class="obj"><input type="radio" name="r_obj" value="${o.c}" ${o.c === '02' ? 'checked' : ''} onchange="App.reqCode()"><div><b>${o.c}</b> ${esc(o.k)} ${esc(L(o))}<span class="mnw">${esc(o.mnw)}</span></div></label>`).join('')}</div></div>
+        <div class="row3">${fld(T('program'), `<input class="inp" type="number" min="1" max="99" id="r_prog" value="${S.data.requests.filter(r => r.kind === 'PRJ' && r.objective === '02' && (r.start || '').startsWith(y)).length + 1}" oninput="App.reqCode()">`)}
+          ${fld(T('start'), `<input class="inp" type="date" id="r_start" value="${todayISO()}" oninput="App.reqCode()">`, 1)}${fld(T('end'), '<input class="inp" type="date" id="r_end">')}</div>
+        <div class="fld"><span>${esc(T('project_code'))}</span><div class="code-pv mono" id="r_code"></div><span class="small muted">${esc(T('code_hint'))}</span></div>`
+      : `${fld(T('req_related'), `<select class="inp" id="r_rel"><option value="">—</option>${prjCodes.map(c => `<option>${esc(c)}</option>`).join('')}</select>`, 1)}
+        <div class="fld"><span>${esc(T('item'))}</span><table class="items"><thead><tr><th>${esc(T('item'))}</th><th style="width:80px">${esc(T('qty'))}</th><th style="width:110px">${esc(T('price'))}</th><th style="width:100px">${esc(T('total'))}</th><th></th></tr></thead><tbody id="r_items"></tbody>
+          <tfoot><tr><td colspan="3" style="text-align:right"><b>${esc(T('total'))}</b></td><td><b id="r_sum">0</b></td><td></td></tr></tfoot></table>
+          <button type="button" class="btn ghost sm" onclick="App.addItem()">${ICON.plus} ${esc(T('add_item'))}</button></div>`}
+      ${fld(T('desc'), '<textarea class="inp" id="r_desc" rows="3"></textarea>')}
+      <div class="fld"><span>${esc(T('attachments'))}</span>
+        <div class="drop" id="r_drop" onclick="$('#r_file').click()">${ICON.upload}<div>${esc(T('drop_hint'))}</div><input type="file" id="r_file" multiple hidden></div>
+        <div class="files" id="r_files"></div><span class="small muted">${esc(T('drop_note'))}</span></div>
+      <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('r_links')}</div>`);
+}
 function payFormHTML(prjCodes) {
   return `
     <div class="banner">${ICON.info}<span>${mm(T('pay_sub'))}</span></div>
@@ -2056,8 +2142,8 @@ function viewHistory() {
 /* ---------- settings ---------- */
 function viewSettings() {
   if (!ADMIN) return `<div class="view"><div class="card empty" style="max-width:460px;margin:40px auto">${ICON.lock}<h3 style="justify-content:center;margin:10px 0">${esc(T('login_needed'))}</h3><button class="btn primary" onclick="App.login()">${ICON.lock} ${esc(T('login'))}</button></div></div>`;
-  const tabs = [['appearance','set_appearance'],['texts','set_texts'],['logo','set_logo'],['types','set_types'],['links','set_links'],['ai','set_ai'],['data','set_data']];
-  const body = ({appearance: setAppearance, texts: setTexts, logo: setLogo, types: setTypes, links: setLinks, ai: setAI, data: setData}[UI.set] || setAppearance)();
+  const tabs = [['appearance','set_appearance'],['texts','set_texts'],['logo','set_logo'],['types','set_types'],['forms','set_forms'],['links','set_links'],['ai','set_ai'],['data','set_data']];
+  const body = ({appearance: setAppearance, texts: setTexts, logo: setLogo, types: setTypes, forms: setForms, links: setLinks, ai: setAI, data: setData}[UI.set] || setAppearance)();
   return `<div class="view"><div class="page-head"><h2>${ICON.gear.replace('<svg', '<svg width="26"')} ${mm(T('nav_settings'))}</h2></div>
     <div class="tabs">${tabs.map(([k, l]) => `<button class="${UI.set === k ? 'on' : ''}" onclick="App.setTab('${k}')">${esc(T(l))}</button>`).join('')}</div>
     <div id="set-body">${body}</div></div>`;
@@ -2115,6 +2201,27 @@ function setLogo() {
       <h3 style="margin-top:8px">${esc(T('app_sub'))}</h3>
       ${['mnw','th','en'].map(l => fld(LANG_LABEL[l], `<input class="inp ${l === 'mnw' ? 'mnw' : ''}" value="${esc(L3('app_sub', l))}" onchange="App.setText('app_sub','${l}',this.value);rerenderAll()">`)).join('')}
     </div></div>`;
+}
+function setForms() {
+  const kind = UI.formKind || 'PRJ', cfg = formCfg(kind), core = FORM_CORE[kind] || [];
+  const ftype = (c, i) => `<select class="inp" data-c="type">${FIELD_TYPES.map(t => `<option value="${t}" ${c.type === t ? 'selected' : ''}>${esc(T('ft_' + t))}</option>`).join('')}</select>`;
+  const crow = (c = {key: '', label: {}, type: 'text', options: '', req: false}) => `<tr class="cf-row"><td><input type="hidden" data-c="key" value="${esc(c.key)}"><input class="inp" data-c="th" placeholder="ไทย" value="${esc((c.label || {}).th || '')}"></td>
+    <td><input class="inp" data-c="en" placeholder="English" value="${esc((c.label || {}).en || '')}"></td><td><input class="inp mnw" data-c="mnw" placeholder="ဘာသာမန်" value="${esc((c.label || {}).mnw || '')}"></td>
+    <td>${ftype(c)}</td><td><input class="inp" data-c="options" placeholder="${esc(T('f_options_ph'))}" value="${esc(c.options || '')}"></td>
+    <td style="text-align:center"><input type="checkbox" data-c="req" ${c.req ? 'checked' : ''}></td>
+    <td><button type="button" class="icon-btn" title="${esc(T('delete'))}" onclick="this.closest('tr').remove()">${ICON.trash}</button></td></tr>`;
+  App._cfRow = crow;
+  return `<div class="banner">${ICON.info}<span>${esc(T('f_note'))}</span></div>
+    <div class="toolbar"><div class="seg">${FORM_KINDS.map(k => `<button class="${k === kind ? 'on' : ''}" onclick="App.setFormKind('${k}')">${k} · ${esc(T(REQ_LABEL[k]))}</button>`).join('')}</div>
+      <span class="spacer" style="flex:1"></span><button class="btn" onclick="App.newRequest('${kind}')">${ICON.file} ${esc(T('f_preview'))}</button>
+      <button class="btn primary" onclick="App.saveForms('${kind}')">${ICON.check} ${esc(T('save'))}</button></div>
+    <div class="card" id="f-builtin"><h3>${esc(T('f_builtin'))}</h3><div class="tbl-wrap"><table class="sheet-tbl"><thead><tr><th>${esc(T('f_label'))}</th><th>${esc(T('f_rename'))} · ไทย</th><th>English</th><th>ဘာသာမန်</th><th>${esc(T('f_show'))}</th></tr></thead><tbody>
+      ${formFields(kind).map(f => { const o = cfg.over[f.key] || {}, lab = o.label || {}, isCore = core.includes(f.key); return `<tr data-key="${esc(f.key)}"><td><b>${mm(f.label)}</b><div class="small muted mono">${esc(f.key)}</div></td>
+        <td><input class="inp" data-o="th" value="${esc(lab.th || '')}"></td><td><input class="inp" data-o="en" value="${esc(lab.en || '')}"></td><td><input class="inp mnw" data-o="mnw" value="${esc(lab.mnw || '')}"></td>
+        <td style="text-align:center">${isCore ? `<span class="chip">${esc(T('f_core'))}</span>` : `<input type="checkbox" data-o="show" ${o.hidden ? '' : 'checked'}>`}</td></tr>`; }).join('')}</tbody></table></div></div>
+    <div class="card" id="f-custom"><h3>${esc(T('f_custom'))}</h3><div class="tbl-wrap"><table class="sheet-tbl"><thead><tr><th>${esc(T('f_label'))} · ไทย</th><th>English</th><th>ဘာသာမန်</th><th>${esc(T('f_type'))}</th><th>${esc(T('f_options'))}</th><th>${esc(T('f_required'))}</th><th></th></tr></thead>
+      <tbody id="cf-body">${cfg.custom.map(c => crow(c)).join('')}</tbody></table></div>
+      <button type="button" class="btn ghost sm" style="margin-top:8px" onclick="document.getElementById('cf-body').insertAdjacentHTML('beforeend', App._cfRow())">${ICON.plus} ${esc(T('f_add'))}</button></div>`;
 }
 function setTypes() {
   const used = new Set(S.data.docs.map(d => d.type));
@@ -2499,25 +2606,10 @@ const App = {
     const y = curYear();
     const prjCodes = [...new Set(S.data.requests.filter(r => r.kind === 'PRJ').map(r => r.code))];
     const seg = `<div class="seg wrap" style="margin-bottom:16px">${['PRJ', 'BUD', 'PAY'].map(k => `<button class="${kind === k ? 'on' : ''}" onclick="App.switchReq('${k}')">${k} · ${esc(T(REQ_LABEL[k]))}</button>`).join('')}</div>`;
-    const body = seg + (kind === 'PAY' ? payFormHTML(prjCodes) : `
-      ${fld(T('subject'), `<input class="inp" id="r_title" placeholder="${esc(T('subject_ph'))}">`, 1)}
-      <div class="row2">${fld(T('proposer'), '<input class="inp" id="r_prop">', 1)}${fld(T('amount'), `<input class="inp" type="number" min="0" id="r_amount" ${kind === 'BUD' ? 'readonly' : ''}>`)}</div>
-      ${kind === 'PRJ' ? `
-        <div class="fld"><span>${mm(T('objective'))}</span><div class="obj-grid">${OBJECTIVES.map(o => `<label class="obj"><input type="radio" name="r_obj" value="${o.c}" ${o.c === '02' ? 'checked' : ''} onchange="App.reqCode()"><div><b>${o.c}</b> ${esc(o.k)} ${esc(L(o))}<span class="mnw">${esc(o.mnw)}</span></div></label>`).join('')}</div></div>
-        <div class="row3">${fld(T('program'), `<input class="inp" type="number" min="1" max="99" id="r_prog" value="${S.data.requests.filter(r => r.kind === 'PRJ' && r.objective === '02' && (r.start || '').startsWith(y)).length + 1}" oninput="App.reqCode()">`)}
-          ${fld(T('start'), `<input class="inp" type="date" id="r_start" value="${todayISO()}" oninput="App.reqCode()">`, 1)}${fld(T('end'), '<input class="inp" type="date" id="r_end">')}</div>
-        <div class="fld"><span>${esc(T('project_code'))}</span><div class="code-pv mono" id="r_code"></div><span class="small muted">${esc(T('code_hint'))}</span></div>`
-      : `${fld(T('req_related'), `<select class="inp" id="r_rel"><option value="">—</option>${prjCodes.map(c => `<option>${esc(c)}</option>`).join('')}</select>`, 1)}
-        <div class="fld"><span>${esc(T('item'))}</span><table class="items"><thead><tr><th>${esc(T('item'))}</th><th style="width:80px">${esc(T('qty'))}</th><th style="width:110px">${esc(T('price'))}</th><th style="width:100px">${esc(T('total'))}</th><th></th></tr></thead><tbody id="r_items"></tbody>
-          <tfoot><tr><td colspan="3" style="text-align:right"><b>${esc(T('total'))}</b></td><td><b id="r_sum">0</b></td><td></td></tr></tfoot></table>
-          <button type="button" class="btn ghost sm" onclick="App.addItem()">${ICON.plus} ${esc(T('add_item'))}</button></div>`}
-      ${fld(T('desc'), '<textarea class="inp" id="r_desc" rows="3"></textarea>')}
-      <div class="fld"><span>${esc(T('attachments'))}</span>
-        <div class="drop" id="r_drop" onclick="$('#r_file').click()">${ICON.upload}<div>${esc(T('drop_hint'))}</div><input type="file" id="r_file" multiple hidden></div>
-        <div class="files" id="r_files"></div><span class="small muted">${esc(T('drop_note'))}</span></div>
-      <div class="fld"><span>${esc(T('links'))}</span>${linksEditor('r_links')}</div>`);
+    const body = seg + reqFormHTML(kind, prjCodes);
     App._reqModal = modal({title: `${ICON.upload.replace('<svg', '<svg width="20"')} ${esc(T('req_new'))}`, size: 'lg', body,
       actions: [{label: esc(T('cancel'))}, {label: `${ICON.upload} ${esc(T('submit'))}`, cls: 'primary', on: (_, close, btn) => App.submitReq(kind, btn, close)}]});
+    applyForm(kind, App._reqModal.el);
     App.bindDrop();
     if (kind === 'PRJ') App.reqCode(); else if (kind === 'BUD') App.addItem(); else App.payCalc();
   },
@@ -2550,10 +2642,10 @@ const App = {
     App._reqModal = modal({title: `${ICON.edit.replace('<svg', '<svg width="20"')} ${badge('PAY')} ${mm(r.title)}`, size: 'lg', body: payFormHTML(prjCodes) + `
       <div class="row2">${fld(T('number'), `<input class="inp mono" id="q_docno" list="dl-nos" value="${esc(r.docNo)}">`)}${fld(T('status'), `<select class="inp" id="q_st">${['submitted','review','approved','returned'].map(x => `<option value="${x}" ${r.status === x ? 'selected' : ''}>${esc(T('st_' + x))}</option>`).join('')}</select>`)}</div>${datalists()}`,
       actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: (_, close, btn) => {
-        if (!requireFields(['r_prop', 'p_payee', 'r_title', 'r_amount', 'r_desc'])) return false;
+        if (!requireFields(['r_prop', 'p_payee', 'r_title', 'r_amount', 'r_desc'].concat(extraReq('PAY')))) return false;
         const ck = n => ($(`input[name=${n}]:checked`) || {}).value || '';
         const o = Object.assign({}, r, {title: val('r_title'), proposer: val('r_prop'), amount: +val('r_amount') || 0, desc: val('r_desc'), links: readLinks('r_links'),
-          code: val('r_rel'), objective: val('r_rel').slice(0, 2), docNo: val('q_docno'),
+          code: val('r_rel'), objective: val('r_rel').slice(0, 2), docNo: val('q_docno'), extra: Object.assign({}, r.extra || {}, readExtra('PAY')),
           items: Object.assign({}, p, {dept: val('p_dept'), payee: val('p_payee'), phone: val('p_phone'), sup: val('p_sup'), contact: val('p_contact'),
             cat: ck('p_cat'), method: ck('p_method'), budget: val('p_budget'), voucher: val('p_voucher'), ptype: ck('p_type'), need: val('p_need'), pri: ck('p_pri'),
             docs: $$('input[name=p_docs]:checked').map(x => x.value), docOther: val('p_docother'), lines: readPayLines()})});
@@ -2575,6 +2667,8 @@ const App = {
         })();
         return false;
       }}]});
+    applyForm('PAY', App._reqModal.el);
+    Object.entries(r.extra || {}).forEach(([k, v]) => { const e = document.getElementById('cf_' + k); if (e) e.value = v; });
     // เติมค่าเดิมลงฟอร์ม
     const setv = (i, v) => { const e = document.getElementById(i); if (e && v != null) e.value = v; };
     const setr = (n, v) => { const e = $(`input[name=${n}][value="${v}"]`); if (e) e.checked = true; };
@@ -2611,9 +2705,10 @@ const App = {
   },
   rmFile(i) { UI.files.splice(i, 1); App.drawFiles(); },
   submitReq(kind, btn, close) {
+    if (!requireFields(extraReq(kind))) return false;
     if (!requireFields(kind === 'PRJ' ? ['r_title', 'r_prop', 'r_start'] : kind === 'BUD' ? ['r_title', 'r_prop', 'r_rel'] : ['r_prop', 'p_payee', 'r_title', 'r_amount', 'r_desc'])) return false;
     const r = {id: uid(), kind, title: val('r_title'), proposer: val('r_prop'), amount: +val('r_amount') || 0, desc: val('r_desc'), files: [], links: readLinks('r_links'),
-      status: 'submitted', history: [{at: todayISO(), st: 'submitted'}], items: []};
+      status: 'submitted', history: [{at: todayISO(), st: 'submitted'}], items: [], extra: readExtra(kind)};
     if (kind === 'PRJ') Object.assign(r, {objective: ($('input[name=r_obj]:checked') || {}).value, program: +val('r_prog') || 1, start: val('r_start'), end: val('r_end'), code: $('#r_code').textContent});
     else if (kind === 'BUD') {
       r.code = val('r_rel'); r.objective = r.code.slice(0, 2);
@@ -2671,6 +2766,7 @@ const App = {
         <dt>${esc(T('amount'))}</dt><dd><b>${money(r.amount)}</b></dd>
         ${r.items.length ? `<dt>${esc(T('item'))}</dt><dd>${r.items.map(i => `${esc(i.name)} — ${i.qty} × ${money(i.price)} = <b>${money(i.qty * i.price)}</b>`).join('<br>')}</dd>` : ''}
         <dt>${esc(T('desc'))}</dt><dd>${mm(r.desc) || '—'}</dd>
+        ${extraRows(r).map(x => `<dt>${mm(x.label)}</dt><dd>${mm(x.value)}</dd>`).join('')}
         <dt>${esc(T('attachments'))}</dt><dd>${r.files.length ? r.files.map(f => `<div>📎 ${f.url ? `<a href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener">${esc(f.name)}</a>` : esc(f.name)}</div>`).join('') : '—'}</dd>
         <dt>${esc(T('links'))}</dt><dd>${linksHTML(r.links)}</dd>
         <dt>${esc(T('status'))}</dt><dd><div class="timeline-mini">${r.history.map(h => `<div><b>${esc(T('st_' + h.st))}</b> · ${fmtDate(h.at)}${h.c ? ` — ${esc(h.c)}` : ''}</div>`).join('')}</div></dd>
@@ -2702,6 +2798,7 @@ const App = {
         ${b ? `${sec('pay_s3')}${dd('b_approved', money(b.alloc))}${dd('b_before', money(b.before))}${dd('b_this', money(b.amt))}
           <dt>${mm(T('b_after'))}</dt><dd><b style="${b.after < 0 ? 'color:var(--bad)' : ''}">${money(b.after)}</b> · ${mm(T('bc_' + b.check))}</dd>` : ''}
         ${sec('pay_s4')}${dd('pay_reason', mm(r.desc))}${dd('pay_docs', docs)}
+        ${extraRows(r).length ? `<dt class="kv-sec">${mm(T('f_extra'))}</dt>` + extraRows(r).map(x => `<dt>${mm(x.label)}</dt><dd>${mm(x.value)}</dd>`).join('') : ''}
         <dt>${esc(T('attachments'))}</dt><dd>${r.files.length ? r.files.map(f => `<div>📎 ${f.url ? `<a href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener">${esc(f.name)}</a>` : esc(f.name)}</div>`).join('') : '—'}</dd>
         ${r.links && r.links.length ? `<dt>${esc(T('links'))}</dt><dd>${linksHTML(r.links)}</dd>` : ''}
         ${paid ? `${sec('pay_s6')}${dd('paid_date', fmtDate(paid.date))}${dd('paid_ref', esc(paid.ref))}${dd('paid_amt', money(paid.amt))}` : ''}
@@ -3049,6 +3146,7 @@ const App = {
         <b>${esc(T('amount'))}</b><span>${money(r.amount)}</span>${r.docNo ? `<b>${esc(T('number'))}</b><span class="mono">${esc(r.docNo)}</span>` : ''}<b>${esc(T('status'))}</b><span>${esc(T('st_' + r.status))}</span></div>
       ${r.items.length ? `<table><thead><tr><th>${esc(T('item'))}</th><th>${esc(T('qty'))}</th><th>${esc(T('price'))}</th><th>${esc(T('total'))}</th></tr></thead><tbody>${r.items.map(i => `<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td>${money(i.price)}</td><td>${money(i.qty * i.price)}</td></tr>`).join('')}<tr><td colspan="3" style="text-align:right"><b>${esc(T('total'))}</b></td><td><b>${money(sum)}</b></td></tr></tbody></table>` : ''}
       ${r.desc ? `<p><b>${esc(T('desc'))}</b><br>${mm(r.desc)}</p>` : ''}
+      ${extraRows(r).length ? `<div class="kv">${extraRows(r).map(x => `<b>${mm(x.label)}</b><span>${mm(x.value)}</span>`).join('')}</div>` : ''}
       <div class="signs"><div>(............................)<br>${esc(T('sign_proposer'))}</div><div>(............................)<br>${mm(T('sign_treasurer'))}</div><div>(............................)<br>${mm(T('sign_president'))}</div></div>`);
   },
   printPay(r) {
@@ -3090,6 +3188,7 @@ const App = {
         ${sec('pay_s4')}
         <tr><td>${lb('pay_reason')}</td><td colspan="3" style="height:20mm">${v(r.desc)}</td></tr>
         <tr><td>${lb('pay_docs')}</td><td colspan="3">${docs}</td></tr>
+        ${extraRows(r).map(x => `<tr><td>${mm(x.label)}</td><td colspan="3">${mm(x.value)}</td></tr>`).join('')}
       </table>
       <table class="pt sg">
         ${sec('pay_s5', 3)}
@@ -3148,6 +3247,22 @@ const App = {
 
   /* settings */
   setTab(k) { UI.set = k; renderView(); },
+  setFormKind(k) { UI.formKind = k; renderView(); },
+  saveForms(kind) {
+    const over = {};
+    $$('#f-builtin tr[data-key]').forEach(tr => {
+      const g = k => (tr.querySelector(`[data-o=${k}]`) || {}).value || '';
+      const show = tr.querySelector('[data-o=show]'), label = {th: g('th').trim(), en: g('en').trim(), mnw: g('mnw').trim()};
+      const o = {}; if (label.th || label.en || label.mnw) o.label = label; if (show && !show.checked) o.hidden = true;
+      if (Object.keys(o).length) over[tr.dataset.key] = o;
+    });
+    const custom = $$('#cf-body tr.cf-row').map(tr => {
+      const g = k => (tr.querySelector(`[data-c=${k}]`) || {}).value || '';
+      return {key: g('key') || ('f' + uid()), label: {th: g('th').trim(), en: g('en').trim(), mnw: g('mnw').trim()}, type: g('type') || 'text', options: g('options').trim(), req: tr.querySelector('[data-c=req]').checked};
+    }).filter(c => c.label.th || c.label.en || c.label.mnw);
+    S.settings.forms = Object.assign({}, S.settings.forms || {}, {[kind]: {over, custom}});
+    save(); shareSet('forms'); audit('form', kind); renderView(); toast(T('saved') + ' · ' + kind);
+  },
   setS(k, v, live) { S.settings[k] = v; save(); shareSet(k); applyTheme(); if (!live) renderChrome(); },
   preset(p, a) { S.settings.primary = p; S.settings.accent = a; save(); shareSet('primary'); shareSet('accent'); rerender(); },
   setFont(l, f) { S.settings.fonts[l] = f; save(); shareSet('fonts'); applyTheme(); renderView(); },
