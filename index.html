@@ -169,6 +169,17 @@ html.no-anim *,html.no-anim *::before{animation:none!important;transition:none!i
 .list-row:hover{background:var(--surface-2)}
 .list-row .grow{flex:1;min-width:0}
 .list-row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-strip{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-bottom:16px}
+.hs-card{min-width:0}
+.hs-card h3{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hs-faces{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin}
+.hs-face{flex:none;width:104px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;text-decoration:none;color:inherit;font-size:.85rem}
+.hs-face .avatar{width:64px;height:64px;font-size:1.4rem}
+.hs-face b{font-weight:600;line-height:1.35;overflow-wrap:anywhere}.hs-face span{color:var(--muted);font-size:.78rem;line-height:1.3}
+.hs-quote{display:grid;grid-template-columns:64px 1fr;gap:14px;align-items:start;text-decoration:none;color:inherit;padding:8px 0}
+.hs-quote+.hs-quote{border-top:1px solid var(--line)}
+.hs-quote .avatar{width:64px;height:64px;font-size:1.4rem}
+.hs-quote blockquote{margin:0 0 6px;padding:8px 14px;border-left:4px solid var(--accent);background:var(--surface-2);border-radius:0 10px 10px 0;white-space:pre-wrap;line-height:1.7}
 .dir-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;position:relative}
 .dir-card .avatar{width:96px;height:96px;font-size:2rem}
 .dir-card .nm{font-weight:700;font-size:1.05rem}
@@ -1705,6 +1716,7 @@ function viewOverview() {
         </div>
       </div>
     </section>
+    ${dirStrip()}
     <section class="stats stagger">
       ${stat('users', st.members, 'stat_members', 0)}${stat('cal', S.data.activities.length, 'stat_acts', 1)}
       ${stat('folder', st.projects.length, 'stat_projects', 2)}${stat('file', st.docsYear, 'stat_docs', 3)}
@@ -1873,6 +1885,7 @@ function viewHome() {
         </div>
       </div>
     </section>
+    ${dirStrip()}
     <section class="stats stagger">
       ${stat('file', docsY.length, 'stat_docs', 0)}${stat('folder', pending, 'stat_pending', 1)}
       ${stat('users', S.data.members.length, 'stat_members', 2)}${stat('cal', S.data.activities.length, 'stat_acts', 3)}
@@ -2018,6 +2031,22 @@ const ROLE_ORDER = Object.keys(ROLES);
 const termMember = x => S.data.members.find(m => (x.mid && m.id === x.mid) || (!x.mid && x.name && m.name === x.name));
 /** กรรมการชุดปัจจุบันจากตำแหน่งในทะเบียนสมาชิก (ใช้เมื่อยังไม่ได้บันทึกทำเนียบรายปี) */
 const currentCommittee = () => S.data.members.filter(m => m.role && m.role !== 'member' && ROLES[m.role] && !['advisor', 'ovada', 'pending'].includes(m.status)).map(m => ({role: m.role, mid: m.id, name: m.name}));
+/** แถบทำเนียบบนหน้าหลัก: คณะกรรมการ (วาระล่าสุด) · ที่ปรึกษา · พระโอวาทาจริยะพร้อมคำโอวาท */
+function dirStrip() {
+  const terms = orgTerms(), cur = terms[0];
+  const com = (cur ? cur.members : currentCommittee()).slice().sort((x, y) => ROLE_ORDER.indexOf(x.role) - ROLE_ORDER.indexOf(y.role));
+  const adv = S.data.members.filter(m => m.status === 'advisor'), ova = S.data.members.filter(m => m.status === 'ovada');
+  if (!com.length && !adv.length && !ova.length) return '';
+  const face = (m, sub, href) => `<a class="hs-face" ${href ? `href="${href}"` : ''}>${avatarHTML(m)}<b>${mm(m.name || '—')}</b>${sub ? `<span>${mm(sub)}</span>` : ''}</a>`;
+  const card = (ic, k, href, extra, body) => `<div class="card hs-card"><h3>${ICON[ic].replace('<svg', '<svg width="18"')} ${mm(T(k))}${extra ? ` <span class="chip">${esc(extra)}</span>` : ''}<span class="spacer" style="flex:1"></span><a class="btn ghost sm" href="#${href}">${esc(T('view_all'))}</a></h3>${body}</div>`;
+  const q = ova.filter(m => m.bio);
+  return `<section class="home-strip">
+    ${com.length ? card('award', 'nav_board', 'board', cur ? cur.label : '', `<div class="hs-faces">${com.map(x => { const m = termMember(x) || {name: x.name}; return face(m, role(x.role), m.id ? '#member/' + m.id : '#board'); }).join('')}</div>`) : ''}
+    ${adv.length ? card('users', 'nav_advisors', 'advisors', '', `<div class="hs-faces">${adv.map(m => face(m, m.nameAlt, '#advisors')).join('')}</div>`) : ''}
+    ${ova.length ? card('quote', 'nav_ovada', 'ovada', '', q.length ? q.slice(0, 3).map(m => `<a class="hs-quote" href="#ovada">${avatarHTML(m)}<div><blockquote>${mm(m.bio.length > 260 ? m.bio.slice(0, 260) + '…' : m.bio)}</blockquote><b>${mm(m.name)}</b>${m.nameAlt ? `<span class="small muted"> · ${mm(m.nameAlt)}</span>` : ''}</div></a>`).join('') + (ova.length > q.slice(0, 3).length ? `<div class="hs-faces" style="margin-top:10px">${ova.filter(m => !q.slice(0, 3).includes(m)).map(m => face(m, m.nameAlt, '#ovada')).join('')}</div>` : '')
+      : `<div class="hs-faces">${ova.map(m => face(m, m.nameAlt, '#ovada')).join('')}</div>`) : ''}
+  </section>`;
+}
 function viewDirectory(tab) {
   const tabs = [['board', 'nav_board'], ['advisors', 'nav_advisors'], ['ovada', 'nav_ovada']];
   const head = (ic, k, btn) => `<div class="page-head"><h2>${ICON[ic].replace('<svg', '<svg width="26"')} ${mm(T(k))}</h2><span class="spacer"></span>${btn || ''}</div>
