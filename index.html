@@ -169,6 +169,18 @@ html.no-anim *,html.no-anim *::before{animation:none!important;transition:none!i
 .list-row:hover{background:var(--surface-2)}
 .list-row .grow{flex:1;min-width:0}
 .list-row .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dir-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;position:relative}
+.dir-card .avatar{width:96px;height:96px;font-size:2rem}
+.dir-card .nm{font-weight:700;font-size:1.05rem}
+.dir-card .tools{position:absolute;top:8px;right:8px;display:flex;gap:2px}
+.dir-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.ovada-card{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:start;position:relative;margin-bottom:14px}
+.ovada-card .avatar{width:120px;height:120px;font-size:2.4rem}
+.ovada-card blockquote{margin:10px 0 0;padding:12px 16px;border-left:4px solid var(--accent);background:var(--surface-2);border-radius:0 10px 10px 0;white-space:pre-wrap;line-height:1.8;font-size:1.02rem}
+.ovada-card .tools{position:absolute;top:8px;right:8px;display:flex;gap:2px}
+@media(max-width:560px){.ovada-card{grid-template-columns:1fr;justify-items:center;text-align:center}.ovada-card blockquote{text-align:left}}
+.term-row{display:grid;grid-template-columns:200px 1fr 34px;gap:6px;margin:6px 0}
+@media(max-width:560px){.term-row{grid-template-columns:1fr 34px}.term-row select{grid-column:1/-1}}
 .mem-year{margin:22px 0 10px;display:flex;align-items:baseline;gap:8px;border-bottom:1px solid var(--line);padding-bottom:6px}
 .bud-cat{margin-bottom:16px}.bud-cat h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .bud-meter{height:12px;border-radius:7px;background:var(--surface-2);overflow:hidden;margin:10px 0 6px;display:flex}
@@ -507,7 +519,7 @@ const myRole = () => API ? ROLE : (ADMIN ? 'admin' : SELF ? 'member' : 'public')
 const can = r => RANK[myRole()] >= RANK[r];
 let CONNECTED = false, busyN = 0;
 const TBL = {docs: 'Docs', requests: 'Requests', members: 'Members', activities: 'Activities', history: 'History'};
-const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai','budget','forms'];
+const SHARED = ['primary','accent','radius','fs','anim','fonts','logo','texts','types','links','ai','budget','forms','org'];
 async function api(action, payload = {}, key) {
   busyN++; syncUI();
   try {
@@ -578,6 +590,8 @@ const ICON = {
   download: sv('<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>'),
   edit: sv('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>'),
   trash: sv('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>'),
+  award: sv('<circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 22l5-3 5 3-1.5-8"/>'),
+  quote: sv('<path d="M4 11h5v6H4zM4 11c0-3 1.5-5 4-5M15 11h5v6h-5zM15 11c0-3 1.5-5 4-5"/>'),
   coins: sv('<ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v2c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.7-2.7-3-6-3"/>'),
   wand: sv('<path d="m15 4 5 5L9 20l-5-5z"/><path d="M4 4l2 2M3 9h2M9 3v2"/>'),
   file: sv('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>'),
@@ -869,6 +883,32 @@ const STR_ROWS = [
  ['st_paid','','จ่ายเงินแล้ว','Paid',''],
  ['mem_add','','เพิ่มสมาชิก','Add member',''],
  ['mem_gen','','รุ่นปี','Class of',''],
+ ['ms_ovada','သြဝါဒါစရိယ','พระโอวาทาจริยะ','Ovādācariya',''],
+ ['nav_board','','ทำเนียบคณะกรรมการ','Committee by term',''],
+ ['nav_advisors','','ที่ปรึกษา','Advisors',''],
+ ['nav_ovada','သြဝါဒါစရိယ','พระโอวาทาจริยะ','Ovādācariya (teachers)',''],
+ ['d_term','','วาระ / ปี','Term / year',''],
+ ['d_current','','ชุดปัจจุบัน (จากตำแหน่งในทะเบียนสมาชิก)','Current (from member roles)',''],
+ ['d_no_term','','ยังไม่ได้บันทึกทำเนียบรายปี · ตอนนี้แสดงกรรมการจากตำแหน่งในทะเบียนสมาชิก · กด “เพิ่มวาระ” เพื่อบันทึกเป็นทำเนียบของปีนั้น','No term saved yet · showing the committee from member roles · use “Add term” to record it for a year',''],
+ ['d_add_term','','เพิ่มวาระ','Add term',''],
+ ['d_edit_term','','แก้ไขวาระนี้','Edit this term',''],
+ ['d_del_term','','ลบทำเนียบวาระ','Delete the committee for term',''],
+ ['d_term_dup','','มีวาระนี้อยู่แล้ว','This term already exists',''],
+ ['d_positions','','ตำแหน่งและรายชื่อ','Positions and names',''],
+ ['d_add_pos','','เพิ่มตำแหน่ง','Add position',''],
+ ['d_pos_hint','','พิมพ์ชื่อแล้วเลือกจากรายชื่อสมาชิก (จะแสดงรูปและลิงก์ไปหน้าสมาชิก) หรือพิมพ์ชื่อเองได้','Type a name and pick a member (shows photo and links to their page), or type any name',''],
+ ['d_name_ph','','ชื่อ — เลือกจากสมาชิกหรือพิมพ์เอง','Name — pick a member or type',''],
+ ['d_add_advisor','','เพิ่มที่ปรึกษา','Add advisor',''],
+ ['d_add_ovada','','เพิ่มพระโอวาทาจริยะ','Add teacher',''],
+ ['d_title','','ตำแหน่ง / สมณศักดิ์ / วัด / สังกัด','Title / temple / affiliation',''],
+ ['d_title_ph','','เช่น เจ้าอาวาสวัด… · อาจารย์ประจำ…','e.g. Abbot of … · Lecturer at …',''],
+ ['d_text','','คำโอวาท','Words of advice',''],
+ ['d_text_ph','','พิมพ์หรือวางคำโอวาทของท่าน — จะแสดงบนหน้าพระโอวาทาจริยะ','Type or paste the teacher\'s words of advice — shown on the page',''],
+ ['d_about','','ประวัติย่อ / หมายเหตุ','Short profile / note',''],
+ ['d_about_ph','','เช่น ที่ปรึกษาด้าน… ตั้งแต่ปี…','e.g. Advisor on … since …',''],
+ ['d_no_text','','ยังไม่มีคำโอวาท','No words of advice yet',''],
+ ['d_ovada_note','','พระโอวาทาจริยะของชมรม พร้อมคำโอวาทของแต่ละท่าน','The Society\'s Ovādācariya teachers and their words of advice',''],
+ ['d_del_person','','ลบรายชื่อนี้ถาวร','Permanently delete',''],
  ['mem_unit','','รูป','members',''],
  ['mem_no','စၟတ်ဂၞန်','เลขสมาชิก','Member no.',1],
  ['name','ယၟု','ชื่อ','Name',1],
@@ -1264,7 +1304,7 @@ function defaults() {
     settings: {lang:'th', mode:'auto', primary:'#b3191f', accent:'#d9a521', radius:14, fs:16, anim:true,
       fonts:{mnw:'Padauk', th:'Noto Sans Thai', en:'Inter'}, logo:'', texts:{}, pin:'MBSST2026',
       links:[{label:'Email MBSST', url:'mailto:mbsst2551@gmail.com'}], sheetsUrl:'',
-      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}, budget: JSON.parse(JSON.stringify(DEFAULT_BUDGET)), forms: {}},
+      types: JSON.parse(JSON.stringify(DEFAULT_TYPES)), ai: {provider: 'anthropic', models: JSON.parse(JSON.stringify(AI_DEFAULT_MODELS))}, budget: JSON.parse(JSON.stringify(DEFAULT_BUDGET)), forms: {}, org: {terms: []}},
     data: seed()
   };
 }
@@ -1574,7 +1614,7 @@ function datalists() {
    ========================================================= */
 const NAV = [
   ['overview','nav_overview','home','public'],['home','nav_home','grid','member'],['issue','nav_issue','stamp','admin'],['registry','nav_registry','list','member'],['requests','nav_requests','folder','member'],['budget','nav_budget','coins','member'],
-  ['-'],['members','nav_members','users','public'],['activities','nav_activities','cal','public'],['history','nav_history','clock','public'],
+  ['-'],['members','nav_members','users','public'],['board','nav_board','award','public'],['advisors','nav_advisors','users','public'],['ovada','nav_ovada','quote','public'],['activities','nav_activities','cal','public'],['history','nav_history','clock','public'],
   ['-'],['ai','nav_ai','wand','member'],['settings','nav_settings','gear','admin']
 ];
 /* สิทธิ์ขั้นต่ำของแต่ละหน้า (หน้าที่ไม่อยู่ในรายการ = สาธารณะ) */
@@ -1599,7 +1639,7 @@ function renderChrome() {
     `<a class="nav-a ${VIEW === n[0] ? 'on' : ''}" href="#${n[0]}" onclick="App.toggleNav(false)">${ICON[n[2]]}<span>${mm(T(n[1]))}</span>${!can(n[3]) ? `<span style="margin-left:auto;opacity:.5">${ic('lock', 14)}</span>` : ''}</a>`).join('')
     + `<div class="nav-foot">${esc(T(API ? 'live_badge' : 'draft_badge'))}</div>`;
 }
-const VIEWS = {overview: viewOverview, ai: viewAI, member: viewMemberPage, home: viewHome, issue: viewIssue, registry: viewRegistry, requests: viewRequests, budget: viewBudget, members: viewMembers, activities: viewActivities, history: viewHistory, settings: viewSettings};
+const VIEWS = {board: () => viewDirectory('board'), advisors: () => viewDirectory('advisors'), ovada: () => viewDirectory('ovada'), overview: viewOverview, ai: viewAI, member: viewMemberPage, home: viewHome, issue: viewIssue, registry: viewRegistry, requests: viewRequests, budget: viewBudget, members: viewMembers, activities: viewActivities, history: viewHistory, settings: viewSettings};
 function renderView() {
   const m = $('#main');
   m.innerHTML = (can(VIEW_NEED[VIEW] || 'public') ? (VIEWS[VIEW] || viewOverview)() : gateView(VIEW_NEED[VIEW])) + footer();
@@ -1972,6 +2012,42 @@ function viewRequests() {
   </div>`;
 }
 
+/* ---------- directory: committee by term · advisors · ovādācariya ---------- */
+const orgTerms = () => ((S.settings.org || {}).terms || []).slice().sort((a, b) => String(b.label).localeCompare(String(a.label)));
+const ROLE_ORDER = Object.keys(ROLES);
+const termMember = x => S.data.members.find(m => (x.mid && m.id === x.mid) || (!x.mid && x.name && m.name === x.name));
+/** กรรมการชุดปัจจุบันจากตำแหน่งในทะเบียนสมาชิก (ใช้เมื่อยังไม่ได้บันทึกทำเนียบรายปี) */
+const currentCommittee = () => S.data.members.filter(m => m.role && m.role !== 'member' && ROLES[m.role] && !['advisor', 'ovada', 'pending'].includes(m.status)).map(m => ({role: m.role, mid: m.id, name: m.name}));
+function viewDirectory(tab) {
+  const tabs = [['board', 'nav_board'], ['advisors', 'nav_advisors'], ['ovada', 'nav_ovada']];
+  const head = (ic, k, btn) => `<div class="page-head"><h2>${ICON[ic].replace('<svg', '<svg width="26"')} ${mm(T(k))}</h2><span class="spacer"></span>${btn || ''}</div>
+    <div class="tabs">${tabs.map(([k2, l]) => `<button class="${tab === k2 ? 'on' : ''}" onclick="location.hash='${k2}'">${mm(T(l))}</button>`).join('')}</div>`;
+  const tools = (edit, del) => ADMIN ? `<div class="tools" onclick="event.stopPropagation()"><button class="icon-btn" title="${esc(T('edit'))}" onclick="${edit}">${ICON.edit}</button><button class="icon-btn" title="${esc(T('delete'))}" onclick="${del}">${ICON.trash}</button></div>` : '';
+  if (tab === 'board') {
+    const terms = orgTerms(), cur = terms.find(t => t.id === UI.termId) || terms[0];
+    const rows = (cur ? cur.members : currentCommittee()).slice().sort((a, b) => ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role));
+    return `<div class="view">${head('award', 'nav_board', ADMIN ? `${cur ? `<button class="btn" onclick="App.editTerm('${cur.id}')">${ICON.edit} ${esc(T('d_edit_term'))}</button>` : ''}<button class="btn primary" onclick="App.editTerm()">${ICON.plus} ${esc(T('d_add_term'))}</button>` : '')}
+      <div class="toolbar"><span>${esc(T('d_term'))}</span>
+        ${terms.length ? `<select class="inp" style="max-width:220px" onchange="App.pickTerm(this.value)">${terms.map(t => `<option value="${esc(t.id)}" ${cur && t.id === cur.id ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>` : `<span class="chip">${esc(T('d_current'))}</span>`}
+        <span class="muted small">${rows.length} ${esc(T('mem_unit'))}</span></div>
+      ${!terms.length && ADMIN ? `<div class="banner">${ICON.info}<span>${esc(T('d_no_term'))}</span></div>` : ''}
+      ${rows.length ? `<div class="dir-grid stagger">${rows.map((x, i) => { const m = termMember(x) || {name: x.name}; return `<div class="card dir-card" style="--i:${Math.min(i, 20)}${m.id ? ';cursor:pointer' : ''}" ${m.id ? `onclick="location.hash='member/${m.id}'"` : ''}>
+          ${avatarHTML(m)}<span class="chip admin-on">${mm(role(x.role))}</span><div class="nm">${mm(m.name || x.name || '—')}</div>${m.nameAlt ? `<div class="small muted">${mm(m.nameAlt)}</div>` : ''}${m.univ ? `<div class="small muted">${mm(m.univ)}</div>` : ''}</div>`; }).join('')}</div>`
+        : `<div class="card empty">${esc(T('no_data'))}</div>`}</div>`;
+  }
+  const kind = tab === 'ovada' ? 'ovada' : 'advisor';
+  const list = S.data.members.filter(m => m.status === kind);
+  const addBtn = ADMIN ? `<button class="btn primary" onclick="App.editPerson('${kind}')">${ICON.plus} ${esc(T(kind === 'ovada' ? 'd_add_ovada' : 'd_add_advisor'))}</button>` : '';
+  if (kind === 'ovada') return `<div class="view">${head('quote', 'nav_ovada', addBtn)}
+    <div class="banner">${ICON.info}<span>${esc(T('d_ovada_note'))}</span></div>
+    ${list.length ? list.map(m => `<div class="card ovada-card">${tools(`App.editPerson('ovada','${m.id}')`, `App.delPerson('${m.id}')`)}${avatarHTML(m)}
+      <div><div class="nm" style="font-weight:700;font-size:1.15rem">${mm(m.name)}</div>${m.nameAlt ? `<div class="small muted">${mm(m.nameAlt)}</div>` : ''}
+        ${m.bio ? `<blockquote>${mm(m.bio)}</blockquote>` : `<p class="muted small">${esc(T('d_no_text'))}</p>`}</div></div>`).join('') : `<div class="card empty">${esc(T('no_data'))}</div>`}</div>`;
+  return `<div class="view">${head('users', 'nav_advisors', addBtn)}
+    ${list.length ? `<div class="dir-grid stagger">${list.map((m, i) => `<div class="card dir-card" style="--i:${Math.min(i, 20)}">${tools(`App.editPerson('advisor','${m.id}')`, `App.delPerson('${m.id}')`)}
+      ${avatarHTML(m)}<div class="nm">${mm(m.name)}</div>${m.nameAlt ? `<div class="small muted">${mm(m.nameAlt)}</div>` : ''}${m.bio ? `<div class="small" style="white-space:pre-wrap;text-align:left">${mm(m.bio)}</div>` : ''}</div>`).join('')}</div>` : `<div class="card empty">${esc(T('no_data'))}</div>`}</div>`;
+}
+
 /* ---------- budget ---------- */
 function viewBudget() {
   const b = budget(), total = budTotal(b), fy = payFY();
@@ -2019,7 +2095,7 @@ function viewBudget() {
 /* ---------- members ---------- */
 function viewMembers() {
   const f = UI.mem;
-  const list = S.data.members.filter(m => (ADMIN || m.status !== 'pending') && (!f.st || m.status === f.st) &&
+  const list = S.data.members.filter(m => m.status !== 'ovada' && (ADMIN || m.status !== 'pending') && (!f.st || m.status === f.st) &&
     (!f.q || [m.name, m.nameAlt, m.no, role(m.role), m.univ].join(' ').toLowerCase().includes(f.q.toLowerCase())));
   // เรียงตามรหัสปีของสมาชิก (เลข 8 หลัก) · ผู้ที่ยังไม่มีเลขเรียงตามปีที่เข้า
   const yr = m => (/^\d{8}$/.test(m.no || '') ? m.no.slice(0, 4) : String(m.joined || '').slice(0, 4)) || '—';
@@ -3248,6 +3324,70 @@ const App = {
   /* settings */
   setTab(k) { UI.set = k; renderView(); },
   setFormKind(k) { UI.formKind = k; renderView(); },
+  pickTerm(id) { UI.termId = id; renderView(); },
+  /** เพิ่ม/แก้ไขทำเนียบคณะกรรมการของวาระ (ปี) */
+  editTerm(id) {
+    const terms = (S.settings.org || {}).terms || [], t = terms.find(x => x.id === id) || {id: '', label: '', members: []};
+    const names = S.data.members.filter(m => !['ovada', 'advisor'].includes(m.status)).map(m => m.name);
+    const row = (x = {role: 'committee', name: ''}) => { const m = termMember(x); return `<div class="term-row"><select class="inp" data-k="role">${ROLE_ORDER.filter(k => k !== 'member').map(k => `<option value="${k}" ${k === x.role ? 'selected' : ''}>${esc(L(ROLES[k]))}</option>`).join('')}</select><input class="inp" data-k="name" list="dl-mem" placeholder="${esc(T('d_name_ph'))}" value="${esc((m && m.name) || x.name || '')}"><button type="button" class="icon-btn" title="${esc(T('delete'))}" onclick="this.parentNode.remove()">${ICON.x}</button></div>`; };
+    App._termRow = row;
+    const acts = [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: () => {
+      if (!requireFields(['t_label'])) return false;
+      const label = val('t_label');
+      if (terms.some(x => x.label === label && x.id !== t.id)) { toast(T('d_term_dup'), 'bad'); return false; }
+      const members = $$('#t_rows .term-row').map(r => { const name = r.querySelector('[data-k=name]').value.trim(), m = S.data.members.find(z => z.name === name); return {role: r.querySelector('[data-k=role]').value, mid: m ? m.id : '', name}; }).filter(x => x.name);
+      const nt = {id: t.id || uid(), label, members};
+      S.settings.org = {terms: terms.filter(x => x.id !== nt.id).concat([nt])};
+      UI.termId = nt.id; save(); shareSet('org'); audit('committee', label); renderView(); toast(T('saved'));
+    }}];
+    if (t.id) acts.unshift({label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: () => {
+      if (!confirm(T('d_del_term') + ' ' + t.label + '?')) return false;
+      S.settings.org = {terms: terms.filter(x => x.id !== t.id)}; UI.termId = ''; save(); shareSet('org'); audit('delete committee', t.label); renderView(); toast(T('deleted'));
+    }});
+    modal({title: `${ICON.award.replace('<svg', '<svg width="20"')} ${esc(T(t.id ? 'd_edit_term' : 'd_add_term'))}`, size: 'lg', body: `
+      ${fld(T('d_term'), `<input class="inp mono" id="t_label" placeholder="2026/2027" value="${esc(t.label)}">`, 1)}
+      <div class="fld"><span>${esc(T('d_positions'))}</span><div id="t_rows">${(t.members.length ? t.members : (t.id ? [] : currentCommittee())).map(row).join('')}</div>
+        <div class="inline" style="flex-wrap:wrap"><button type="button" class="btn ghost sm" onclick="document.getElementById('t_rows').insertAdjacentHTML('beforeend', App._termRow())">${ICON.plus} ${esc(T('d_add_pos'))}</button><span class="small muted">${esc(T('d_pos_hint'))}</span></div></div>
+      <datalist id="dl-mem">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>`, actions: acts});
+  },
+  /** เพิ่ม/แก้ไข ที่ปรึกษา หรือ พระโอวาทาจริยะ (เก็บในทะเบียนสมาชิก ไม่มีเลขสมาชิก จึงเข้าสู่ระบบไม่ได้) */
+  editPerson(kind, id) {
+    const m = S.data.members.find(x => x.id === id) || {};
+    UI.photo = null;
+    modal({title: `${ICON[kind === 'ovada' ? 'quote' : 'users'].replace('<svg', '<svg width="20"')} ${esc(T(id ? 'edit' : (kind === 'ovada' ? 'd_add_ovada' : 'd_add_advisor')))}`, size: 'lg', body: `
+      <div class="pf-photo"><div class="pf-img" id="pf-img">${m.photo && safeImg(m.photo) ? `<img src="${esc(safeImg(m.photo))}" alt="">` : ICON.users}</div>
+        <label class="btn sm">${ICON.upload} ${esc(T('upload_photo'))}<input type="file" accept="image/*" hidden onchange="App.pickPhoto(this)"></label></div>
+      ${fld(T('name'), `<input class="inp" id="d_name" value="${esc(m.name || '')}">`, 1)}
+      ${fld(T('d_title'), `<input class="inp" id="d_alt" placeholder="${esc(T('d_title_ph'))}" value="${esc(m.nameAlt || '')}">`)}
+      ${fld(T(kind === 'ovada' ? 'd_text' : 'd_about'), `<textarea class="inp" id="d_bio" rows="${kind === 'ovada' ? 8 : 4}" placeholder="${esc(T(kind === 'ovada' ? 'd_text_ph' : 'd_about_ph'))}">${esc(m.bio || '')}</textarea>`)}`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.check} ${esc(T('save'))}`, cls: 'primary', on: (_, close, btn) => {
+        if (!requireFields(['d_name'])) return false;
+        btn.classList.add('loading');
+        (async () => {
+          try {
+            const ph = await App.uploadPhoto();
+            const o = Object.assign({id: uid(), no: '', role: 'member', joined: '', note: ''}, m, {name: val('d_name'), nameAlt: val('d_alt'), bio: val('d_bio'), status: kind, pub: 'yes'});
+            if (ph) o.photo = ph;
+            const sv = await persist('members', o);
+            if (m.id) Object.assign(m, sv); else S.data.members.push(sv);
+            audit(m.id ? 'edit ' + kind : 'add ' + kind, o.name); save(); close(); renderView(); toast(T('saved'));
+          } catch (e) { btn.classList.remove('loading'); apiErr(e); }
+        })();
+        return false;
+      }}]});
+  },
+  delPerson(id) {
+    const m = S.data.members.find(x => x.id === id); if (!m) return;
+    modal({title: `${ICON.trash.replace('<svg', '<svg width="20"')} ${esc(T('delete'))}`, body: `<p>${esc(T('d_del_person'))} <b>${mm(m.name)}</b>?</p>`,
+      actions: [{label: esc(T('cancel'))}, {label: `${ICON.trash} ${esc(T('delete'))}`, cls: 'danger', on: (_, close, btn) => {
+        btn.classList.add('loading');
+        (async () => {
+          try { await removeRemote('members', id); S.data.members = S.data.members.filter(x => x.id !== id); audit('delete ' + m.status, m.name); save(); close(); renderView(); toast(T('deleted')); }
+          catch (e) { btn.classList.remove('loading'); apiErr(e); }
+        })();
+        return false;
+      }}]});
+  },
   saveForms(kind) {
     const over = {};
     $$('#f-builtin tr[data-key]').forEach(tr => {
